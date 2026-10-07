@@ -1,0 +1,735 @@
+/* ============================================================
+   占卜站 Demo · 双主题设计 token
+   夜仪（默认暗调）/ 昼谕（亮调）——全部走 CSS 变量
+   ============================================================ */
+:root {
+  /* 共用 */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --t-fast: 180ms;
+  --t-base: 320ms;
+  --t-slow: 600ms;
+  --font-display: "Cormorant Garamond", "Noto Serif SC", Georgia, serif;
+  --font-body: Inter, "Noto Sans SC", system-ui, -apple-system, sans-serif;
+  --fs-12: 12px; --fs-14: 14px; --fs-16: 16px; --fs-20: 20px;
+  --fs-28: 28px; --fs-40: 40px; --fs-64: 64px;
+}
+
+/* 夜仪（默认，暗调星尘） */
+html[data-theme="night"] {
+  --bg-0: #05060B;
+  --bg-1: #0B0E1A;
+  --bg-2: rgba(255,255,255,0.04);
+  --text-1: #E8ECFF;
+  --text-2: #A8B0D0;
+  --text-3: #6B7290;
+  --line: rgba(255,255,255,0.10);
+  --accent: #7C8CFF;
+  --accent-2: #A970FF;
+  --glow: 0 0 40px rgba(124,140,255,0.35);
+  --particle-a: #C9D4FF;
+  --particle-b: #6F7BD8;
+  --accent-rgb: 124,140,255;
+}
+/* 昼谕（亮调奶油紫） */
+html[data-theme="day"] {
+  --bg-0: #FAF7F2;
+  --bg-1: #FFFFFF;
+  --bg-2: rgba(123,98,201,0.06);
+  --text-1: #2B2540;
+  --text-2: #6E6788;
+  --text-3: #A79FBF;
+  --line: rgba(43,37,64,0.10);
+  --accent: #7B62C9;
+  --accent-2: #C9A227;
+  --glow: 0 0 32px rgba(123,98,201,0.22);
+  --particle-a: #B9A8E0;
+  --particle-b: #7B62C9;
+  --accent-rgb: 123,98,201;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg-0);
+  color: var(--text-1);
+  font-family: var(--font-body);
+  font-size: var(--fs-16);
+  line-height: 1.6;
+  overflow: hidden;
+  transition: background var(--t-slow) var(--ease-in-out), color var(--t-slow) var(--ease-in-out);
+}
+
+#bg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  display: block;
+}
+
+.topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;          /* 顶部按钮增至 5 个，窄屏自动换行 */
+  gap: 8px;
+  padding: 18px 24px;
+  pointer-events: none;
+}
+.topbar > * { pointer-events: auto; }
+.brand {
+  font-family: var(--font-display);
+  font-size: var(--fs-28);
+  letter-spacing: 0.18em;
+  font-weight: 500;
+}
+.brand-sub {
+  font-size: var(--fs-14);
+  color: var(--text-2);
+  letter-spacing: 0.3em;
+  margin-left: 6px;
+}
+
+#app {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  width: 100%;
+}
+
+/* ---------- 屏幕切换 ---------- */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 84px 24px 40px;
+  overflow-y: auto;
+}
+.screen.is-active { display: flex; animation: fadeUp var(--t-base) var(--ease-out); }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- 首页 ---------- */
+.hero { text-align: center; margin-bottom: 38px; }
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-64);
+  line-height: 1.08;
+  letter-spacing: 0.02em;
+  text-shadow: var(--glow);
+}
+.hero-sub { margin-top: 14px; color: var(--text-2); font-size: var(--fs-20); }
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 220px));
+  gap: 20px;
+}
+.card {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 28px 20px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-1);
+  cursor: pointer;
+  transition: transform var(--t-base) var(--ease-out),
+              border-color var(--t-base) var(--ease-out),
+              box-shadow var(--t-base) var(--ease-out);
+}
+.card:hover {
+  transform: translateY(-6px);
+  border-color: var(--accent);
+  box-shadow: var(--glow);
+}
+.card-icon { color: var(--accent); }
+.card-name { font-family: var(--font-display); font-size: var(--fs-28); letter-spacing: 0.12em; }
+.card-desc { color: var(--text-3); font-size: var(--fs-14); text-align: center; }
+
+.home-foot { margin-top: 40px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.demo-note { color: var(--text-3); font-size: var(--fs-12); }
+
+/* ---------- 按钮 ---------- */
+.primary-btn {
+  font-family: var(--font-body);
+  font-size: var(--fs-16);
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border: none;
+  border-radius: 999px;
+  padding: 12px 30px;
+  cursor: pointer;
+  transition: transform var(--t-fast) var(--ease-out), opacity var(--t-fast);
+  letter-spacing: 0.06em;
+}
+.primary-btn:hover { transform: translateY(-2px); }
+.primary-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.ghost-btn {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--text-2);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: var(--fs-12);
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--t-base) var(--ease-out), color var(--t-base), border-color var(--t-base);
+}
+.ghost-btn:hover { color: var(--text-1); border-color: var(--accent); }
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--text-2);
+  font-size: var(--fs-16);
+  cursor: pointer;
+  letter-spacing: 0.06em;
+}
+.back-btn:hover { color: var(--text-1); }
+
+/* ---------- 面板通用 ---------- */
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: min(760px, 92vw);
+  margin-bottom: 8px;
+}
+.panel-title { font-family: var(--font-display); font-size: var(--fs-28); font-weight: 500; letter-spacing: 0.08em; }
+.hint { color: var(--text-3); font-size: var(--fs-14); margin-bottom: 18px; text-align: center; }
+.actions { display: flex; gap: 14px; margin-top: 26px; }
+
+/* ---------- 塔罗 ---------- */
+.tarot-stage { width: min(760px, 92vw); min-height: 320px; }
+.fan {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 22px;
+  min-height: 120px;
+}
+.fan .mini {
+  width: 52px; height: 80px;
+  border-radius: var(--r-sm);
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: transform var(--t-base) var(--ease-out), border-color var(--t-base);
+  position: relative;
+  overflow: hidden;
+}
+.fan .mini::after {
+  content: "";
+  position: absolute; inset: 8px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  opacity: 0.5;
+}
+.fan .mini:hover { transform: translateY(-8px); border-color: var(--accent); box-shadow: var(--glow); }
+.fan .mini.picked { opacity: 0.25; pointer-events: none; }
+.slots { display: flex; gap: 18px; justify-content: center; }
+.tarot-card {
+  width: 110px; height: 168px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  perspective: 800px;
+  position: relative;
+  transition: transform var(--t-slow) var(--ease-out), box-shadow var(--t-base);
+}
+.tarot-card.flip { transform: rotateY(180deg); box-shadow: var(--glow); }
+.tarot-card .face, .tarot-card .back {
+  position: absolute; inset: 0;
+  border-radius: var(--r-md);
+  backface-visibility: hidden;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 10px; text-align: center;
+}
+.tarot-card .back { border: 1px solid var(--accent); background: var(--bg-1); }
+.tarot-card .back::after { content: ""; }
+.tarot-card .face { transform: rotateY(180deg); }
+.tarot-card .face canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  border-radius: var(--r-md);
+}
+.tarot-card .face-meta { position: absolute; inset: 0; pointer-events: none; }
+.tarot-card .face-meta .pos {
+  position: absolute; top: 6px; left: 0; right: 0;
+  text-align: center; font-size: var(--fs-12); letter-spacing: 0.1em;
+  color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.7);
+}
+.tarot-card .face-meta .orient {
+  position: absolute; top: 6px; right: 8px;
+  font-size: var(--fs-12); color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.7);
+}
+.tarot-card .cname { font-family: var(--font-display); font-size: var(--fs-20); }
+.tarot-card .orient { font-size: var(--fs-12); color: var(--text-3); margin-top: 6px; }
+.tarot-card .pos { position: absolute; top: 6px; left: 0; right: 0; font-size: var(--fs-12); color: var(--text-3); }
+
+/* ---------- 环形塔罗星盘 ---------- */
+.tarot-dial-wrap {
+  position: relative;
+  width: 320px; height: 320px;
+  margin: 48px auto 10px;   /* 顶部留白：选牌口标签(-26px) + 聚焦牌放大外溢，避免遮挡提问框 */
+  touch-action: none;
+  user-select: none;
+}
+.tarot-dial {
+  position: absolute; inset: 0;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+.dial-card {
+  position: absolute; top: 50%; left: 50%;
+  width: 58px; height: 88px;
+  margin: -44px 0 0 -29px;
+  transform-origin: 50% 50%;
+}
+.dial-card-inner {
+  width: 100%; height: 100%;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  transition: transform var(--t-base) var(--ease-out),
+              box-shadow var(--t-base), border-color var(--t-base), opacity var(--t-base);
+}
+.dial-card canvas { width: 100%; height: 100%; display: block; }
+.dial-card.focus .dial-card-inner { transform: scale(1.34); border-color: var(--accent); box-shadow: var(--glow); }
+.dial-card.used .dial-card-inner { opacity: 0.26; filter: grayscale(0.55); }
+.dial-card.used { pointer-events: none; }
+.dial-selector {
+  position: absolute; top: -4px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 3; width: 70px; height: 44px;
+  display: flex; align-items: flex-start; justify-content: center;
+  cursor: pointer;
+}
+.dial-selector::before {
+  content: ""; width: 0; height: 0;
+  border-left: 15px solid transparent; border-right: 15px solid transparent;
+  border-top: 24px solid var(--accent);
+  filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.85));
+  transition: border-top-color var(--t-base);
+}
+.dial-selector span { position: absolute; top: -22px; font-size: var(--fs-12); color: var(--text-2); letter-spacing: .22em; white-space: nowrap; }
+.dial-selector.active::before { border-top-color: var(--accent-2); }
+.dial-center {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 96px; height: 96px; border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  font-family: var(--font-display); font-size: var(--fs-20); letter-spacing: .08em;
+  color: var(--text-1);
+  box-shadow: inset 0 0 26px rgba(var(--accent-rgb), 0.14);
+  pointer-events: none;
+}
+.tarot-slots { display: flex; gap: 18px; justify-content: center; min-height: 176px; }
+@media (max-width: 640px) {
+  .tarot-dial-wrap { width: 280px; height: 280px; }
+  .dial-card { width: 52px; height: 80px; margin: -40px 0 0 -26px; }
+}
+
+/* ---------- 六爻 · 起卦法阵 ---------- */
+.gua-stage {
+  position: relative;
+  width: 360px; height: 360px;
+  max-width: 86vw;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 4px;
+}
+.gua-array { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.gua-frame {
+  position: relative; z-index: 1;
+  padding: 24px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(var(--accent-rgb), 0.07), transparent 72%);
+  border: 1px solid var(--line);
+  box-shadow: var(--glow), inset 0 0 44px rgba(var(--accent-rgb), 0.12);
+}
+.gua-frame .hex { width: 184px; }
+.gua-name {
+  margin-top: 10px; text-align: center;
+  font-family: var(--font-display); font-size: var(--fs-20); letter-spacing: 0.1em;
+  color: var(--text-1); min-height: 28px;
+}
+.gua-name small { display: block; color: var(--text-3); font-size: var(--fs-12); letter-spacing: 0; margin-top: 4px; }
+
+.hex { display: flex; flex-direction: column-reverse; gap: 8px; width: min(420px, 86vw); }
+.yao {
+  height: 16px; border-radius: 4px;
+  background: var(--text-1);
+  position: relative;
+  transition: width var(--t-base) var(--ease-out);
+  align-self: center;
+  opacity: 0; transform: scaleX(0.15);
+  animation: yaoIn var(--t-base) var(--ease-out) forwards;
+}
+@keyframes yaoIn { to { opacity: 1; transform: scaleX(1); } }
+.yao.yin { background: transparent; border-top: 3px solid var(--text-1); border-bottom: 3px solid var(--text-1); height: 0; transform: scaleX(0.15); }
+.yao.old { box-shadow: var(--glow); }
+.yao .tag { position: absolute; right: -34px; top: -6px; font-size: var(--fs-12); color: var(--accent-2); }
+
+/* ---------- 数字 ---------- */
+.num-input-row { display: flex; gap: 12px; align-items: center; }
+.num-input {
+  font-family: var(--font-display);
+  font-size: var(--fs-40);
+  letter-spacing: 0.12em;
+  text-align: center;
+  width: 280px; max-width: 80vw;
+  padding: 12px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--text-1);
+}
+.num-input:focus { outline: none; border-color: var(--accent); box-shadow: var(--glow); }
+.num-result {
+  margin-top: 22px; text-align: center; min-height: 60px;
+  display: flex; flex-direction: column; align-items: center;
+  font-family: var(--font-display); font-size: var(--fs-28); letter-spacing: 0.1em;
+  color: var(--accent-2);
+}
+.num-result canvas {
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  box-shadow: var(--glow), inset 0 0 40px rgba(var(--accent-rgb), 0.10);
+  background: var(--bg-1);
+  animation: mandalaIn var(--t-slow) var(--ease-out);
+}
+@keyframes mandalaIn { from { opacity: 0; transform: scale(0.82) rotate(-12deg); } to { opacity: 1; transform: none; } }
+
+/* ---------- 解读 ---------- */
+.demo-banner {
+  width: min(760px, 92vw);
+  background: var(--bg-2);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-md);
+  padding: 8px 14px;
+  font-size: var(--fs-12);
+  color: var(--text-3);
+  text-align: center;
+  margin-bottom: 16px;
+}
+.vortex { display: flex; gap: 8px; justify-content: center; margin: 30px 0; }
+.vortex span {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 1.1s infinite var(--ease-in-out);
+}
+.vortex span:nth-child(2) { animation-delay: .15s; background: var(--accent-2); }
+.vortex span:nth-child(3) { animation-delay: .3s; }
+@keyframes pulse { 0%,100% { opacity: .25; transform: scale(.7); } 50% { opacity: 1; transform: scale(1.1); } }
+.vortex.hide { display: none; }
+
+.reading { width: min(760px, 92vw); }
+.reading .tone {
+  font-family: var(--font-display);
+  font-size: var(--fs-28);
+  text-align: center;
+  margin-bottom: 22px;
+  letter-spacing: 0.06em;
+  text-shadow: var(--glow);
+}
+.reading .r-card {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+.reading .r-card .pos { color: var(--accent); font-size: var(--fs-12); letter-spacing: 0.1em; }
+.reading .r-card .cname { font-family: var(--font-display); font-size: var(--fs-20); margin: 2px 0 8px; }
+.reading .r-card .txt { color: var(--text-2); font-size: var(--fs-14); }
+.reading .synthesis, .reading .actions-list, .reading .closing {
+  background: var(--bg-2);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+.reading .block-title { color: var(--text-3); font-size: var(--fs-12); letter-spacing: 0.14em; margin-bottom: 8px; }
+.reading .actions-list li { margin: 6px 0 6px 18px; color: var(--text-2); font-size: var(--fs-14); }
+.reading .closing { font-family: var(--font-display); font-size: var(--fs-20); text-align: center; color: var(--text-1); }
+.reading .disclaimer { text-align: center; color: var(--text-3); font-size: var(--fs-12); margin-top: 10px; }
+
+/* 解读工具条：朗读 + 导出星图 */
+.reading-tools { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+.reading-tools[hidden] { display: none; }
+
+/* ---------- 提问 / 许愿输入（全屏模块共用） ---------- */
+.ask-row { width: min(760px, 92vw); margin: 2px 0 10px; }
+.ask-input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--fs-16);
+  color: var(--text-1);
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 12px 20px;
+  transition: border-color var(--t-base) var(--ease-out), box-shadow var(--t-base) var(--ease-out);
+}
+.ask-input::placeholder { color: var(--text-3); }
+.ask-input:focus { outline: none; border-color: var(--accent); box-shadow: var(--glow); }
+
+/* 解读页：把用户的问题回显在顶部，并用议题标签接住它 */
+.reading .ask-echo {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  color: var(--text-2);
+  font-size: var(--fs-14);
+  line-height: 1.6;
+}
+.reading .ask-echo-tag {
+  display: inline-block;
+  font-size: var(--fs-12);
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  margin-right: 10px;
+  white-space: nowrap;
+}
+.reading .ask-echo-q { color: var(--text-1); font-family: var(--font-display); font-size: var(--fs-20); }
+
+/* ---------- 揭晓仪式感：星尘聚拢层 ---------- */
+.reveal-veil {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--t-base) var(--ease-out);
+}
+.reveal-veil.show { opacity: 1; }
+
+/* ============================================================
+   微交互：辉光呼吸 + 点击涟漪（磁吸由 app.js 控制 transform）
+   ============================================================ */
+.primary-btn {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 22px rgba(var(--accent-rgb), 0.14);
+  animation: btnBreathe 3.4s ease-in-out infinite;
+}
+@keyframes btnBreathe {
+  0%, 100% { box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.10); }
+  50%      { box-shadow: 0 0 32px rgba(var(--accent-rgb), 0.36); }
+}
+.primary-btn:not(:disabled):hover {
+  animation-play-state: paused;
+  box-shadow: 0 0 38px rgba(var(--accent-rgb), 0.5);
+}
+
+/* 首页卡片：常态与悬停时轻微辉光呼吸 */
+.card { position: relative; overflow: hidden; }
+.card:hover {
+  animation: cardBreathe 2.6s ease-in-out infinite;
+}
+@keyframes cardBreathe {
+  0%, 100% { box-shadow: var(--glow); border-color: var(--accent); }
+  50%      { box-shadow: 0 0 54px rgba(var(--accent-rgb), 0.5); border-color: var(--accent-2); }
+}
+
+/* 首页主标题：辉光呼吸 */
+.hero-title { animation: titleBreathe 4.6s ease-in-out infinite; }
+@keyframes titleBreathe {
+  0%, 100% { text-shadow: 0 0 22px rgba(var(--accent-rgb), 0.25); }
+  50%      { text-shadow: 0 0 46px rgba(var(--accent-rgb), 0.62); }
+}
+
+/* 点击涟漪（DOM 层，配合背景粒子涟漪） */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb), 0.30);
+  transform: scale(0);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 3;
+  animation: rippleOut 0.62s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes rippleOut {
+  to { transform: scale(1); opacity: 0; }
+}
+/* 磁吸过渡兜底 */
+.primary-btn, .ghost-btn, .back-btn, .card { will-change: transform; }
+
+/* ---------- 摄像头交互 ---------- */
+.cam-wrap {
+  position: fixed; right: 18px; bottom: 18px; z-index: 6;
+  width: 220px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-1);
+  box-shadow: var(--glow);
+  overflow: hidden;
+}
+.cam-wrap video {
+  display: block;
+  width: 100%; height: 165px;
+  object-fit: cover;
+  transform: scaleX(-1);            /* 镜像，符合自拍直觉 */
+  background: #05060B;
+}
+.cam-wrap .cam-fx {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 165px;
+  pointer-events: none;
+}
+.cam-wrap .cam-status {
+  font-size: var(--fs-12);
+  color: var(--text-3);
+  padding: 8px 10px;
+  line-height: 1.5;
+}
+.cam-wrap .cam-close {
+  position: absolute; top: 8px; right: 8px;
+  padding: 4px 10px; font-size: var(--fs-12);
+  background: rgba(0,0,0,0.38); color: #fff; border-color: transparent;
+}
+.cam-wrap .cam-close:hover { color: #fff; border-color: var(--accent); }
+.cam-wrap .cam-gesture {
+  font-size: var(--fs-12);
+  color: var(--accent);
+  padding: 0 10px 8px;
+  letter-spacing: .08em;
+}
+.ghost-btn.is-on { color: var(--text-1); border-color: var(--accent); box-shadow: var(--glow); }
+
+/* 全屏光环：跟随摄像头控制点，提示“你此刻在屏幕上的位置” */
+.cam-reticle {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 7;
+}
+
+/* ---------- 二十八宿 · 星野指引 ---------- */
+.mansion-stage {
+  position: relative;
+  width: 320px; height: 320px;
+  max-width: 86vw;
+  margin: 44px auto 8px;   /* 顶部留白：取宿口标签(-26px)向上伸出，避免遮挡提问框 */
+  touch-action: none; user-select: none;
+}
+.mansion-ring { position: absolute; inset: 0; transform-origin: 50% 50%; will-change: transform; }
+.mansion-node {
+  position: absolute; top: 50%; left: 50%;
+  width: 30px; height: 30px; margin: -15px 0 0 -15px;
+  transform-origin: 50% 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.mansion-node .dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--text-3);
+  transition: background var(--t-base) var(--ease-out), transform var(--t-base) var(--ease-out), box-shadow var(--t-base);
+}
+.mansion-node .lbl {
+  position: absolute; top: -16px; left: 0; right: 0; text-align: center;
+  font-family: var(--font-display); font-size: var(--fs-12);
+  color: var(--text-3); transition: color var(--t-base);
+}
+.mansion-node.focus .dot { background: var(--accent); box-shadow: var(--glow); transform: scale(1.8); }
+.mansion-node.focus .lbl { color: var(--text-1); }
+.mansion-center {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 92px; height: 92px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--bg-2);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: var(--fs-40); color: var(--text-1);
+  box-shadow: inset 0 0 26px rgba(var(--accent-rgb), 0.14);
+  pointer-events: none;
+}
+
+/* ---------- 北欧符文 · 远古之语 ---------- */
+.rune-row { display: flex; gap: 18px; justify-content: center; align-items: center; min-height: 184px; }
+.rune-stone {
+  width: 110px; height: 160px; border-radius: 14px;
+  box-shadow: var(--glow);
+}
+@keyframes runeIn { from { opacity: 0; transform: translateY(18px) scale(0.86); } to { opacity: 1; transform: none; } }
+@keyframes cupShake {
+  0%,100% { transform: translateX(-50%) rotate(0); }
+  20% { transform: translateX(-50%) rotate(-7deg); }
+  40% { transform: translateX(-50%) rotate(7deg); }
+  60% { transform: translateX(-50%) rotate(-5deg); }
+  80% { transform: translateX(-50%) rotate(5deg); }
+}
+
+/* ---------- 寺观灵签 · 一签之示 ---------- */
+.oracle-stage { position: relative; width: 220px; height: 300px; margin: 8px auto; }
+.oracle-cup {
+  position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
+  width: 132px; height: 184px;
+  border: 1px solid var(--line); border-radius: 16px 16px 20px 20px;
+  background: linear-gradient(180deg, var(--bg-1), var(--bg-0));
+  box-shadow: var(--glow); overflow: hidden;
+}
+.oracle-cup::before {
+  content: ""; position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+  width: 142px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--bg-1);
+}
+.oracle-stick {
+  position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%) translateY(130px);
+  width: 18px; height: 210px; border-radius: 8px;
+  background: linear-gradient(180deg, #e7d6ad, #b89a63);
+  opacity: 0; pointer-events: none;
+  transition: transform var(--t-slow) var(--ease-out), opacity var(--t-base);
+  box-shadow: 0 0 18px rgba(189,150,80,0.5);
+}
+.oracle-stick.show { transform: translateX(-50%) translateY(-168px); opacity: 1; }
+.oracle-stick span {
+  position: absolute; top: 16px; left: 0; right: 0; text-align: center;
+  color: #3a2f17; font-family: var(--font-display); font-size: var(--fs-20); font-weight: 500;
+  writing-mode: vertical-rl; letter-spacing: 0.1em;
+}
+.oracle-cup.shake { animation: cupShake 0.6s var(--ease-in-out); }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 640px) {
+  .hero-title { font-size: 44px; }
+  .cards { grid-template-columns: 1fr; }
+  .cards .card { flex-direction: row; justify-content: flex-start; gap: 16px; padding: 16px 18px; }
+  .tarot-card { width: 92px; height: 142px; }
+}
+
+/* ---------- 降级：减少动效 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .screen.is-active { animation: none; }
+  .vortex span { animation: none; opacity: .6; }
+  .card:hover, .tarot-card.flip { transform: none; }
+  .primary-btn, .card, .hero-title { animation: none !important; }
+  .primary-btn { box-shadow: none; }
+  .ripple { animation: none; opacity: 0; }
+  * { transition-duration: 1ms !important; }
+}

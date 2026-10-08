@@ -66,7 +66,7 @@
       mansionSel: "取宿口", mansionSpin: "摇星", mansionPick: "取宿指引",
       runeCast: "掷符", runeReveal: "查看解读",
       oracleDraw: "求签", oracleReveal: "看签诗",
-      readingTitle: "解读", readingSpeak: "🔊 朗读", readingExport: "⤓ 导出星图",
+      readingTitle: "解读", readingSpeak: "🔊 朗读", readingExport: "⤓ 导出星图", readingExit: "✕ 退出",
       camClose: "关闭", camStatus: "开启后画面中心出现跟随手部的光环：移到元素上停留约 1 秒自动触发。塔罗可用手势：张开手掌转动星盘、握拳取牌 · 🔒 仅本地处理，不上传", camGesture: "手势：检测中…",
       camMotion: "手势：运动追踪（无手部模型）", camNoHand: "未检测到手", camFist: "✊ 握拳 · 取牌", camOpen: "✋ 张开 · 转动", camGesturePrefix: "手势：",
       tarotHintIdle: "转动星盘，让目标牌停在顶部「选牌口」，停留或握拳取牌。",
@@ -183,7 +183,7 @@
       mansionSel: "Capture", mansionSpin: "Spin", mansionPick: "Mansion Guidance",
       runeCast: "Cast", runeReveal: "View Reading",
       oracleDraw: "Draw Lot", oracleReveal: "View Verse",
-      readingTitle: "Reading", readingSpeak: "🔊 Read", readingExport: "⤓ Export",
+      readingTitle: "Reading", readingSpeak: "🔊 Read", readingExport: "⤓ Export", readingExit: "✕ Exit",
       camClose: "Close", camStatus: "When on, a halo follows your hand at center: dwell ~1s on an element to trigger it. Tarot gestures: open palm spins the ring, fist picks a card · 🔒 local only, never uploaded", camGesture: "Gesture: detecting…",
       camMotion: "Gesture: motion tracking (no hand model)", camNoHand: "No hand detected", camFist: "✊ Fist · pick", camOpen: "✋ Open · spin", camGesturePrefix: "Gesture: ",
       tarotHintIdle: "Spin the ring so your card rests at the top selector; dwell or make a fist to pick.",
@@ -901,6 +901,7 @@
   const readingTools = document.getElementById("readingTools");
   const readingSpeak = document.getElementById("readingSpeak");
   const readingExport = document.getElementById("readingExport");
+  const readingExit = document.getElementById("readingExit");
   let currentReading = null;        // { type, data, r } —— 供朗读 / 导出复用
   let currentReadingText = "";      // 纯文本，供语音朗读
   function renderReading(r) {
@@ -1104,8 +1105,17 @@
   function initReadingExport() {
     if (readingExport) readingExport.addEventListener("click", exportStarMap);
   }
+  /* 退出解读：导航回首页由 data-go="home" 统一处理；此处仅收尾——停止朗读并复位朗读按钮 */
+  function initReadingExit() {
+    if (!readingExit) return;
+    readingExit.addEventListener("click", () => {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      if (readingSpeak) { readingSpeak.dataset.on = "0"; readingSpeak.textContent = t("speakPlay"); }
+    });
+  }
   initReadingSpeak();
   initReadingExport();
+  initReadingExit();
 
   /* ============================================================
      揭晓仪式感：星尘聚拢动画 + 可选轻音（Web Audio）

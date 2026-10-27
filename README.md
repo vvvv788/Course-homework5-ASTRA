@@ -47,14 +47,16 @@
 
 可用环境变量覆盖：`STEP_MODEL`、`STEP_TTS_MODEL`、`STEP_TTS_VOICE_ZH`、`STEP_TTS_VOICE_EN`、`STEP_REASONING_EFFORT`、`PORT`。
 
-## 让别人在线也能用（GitHub Pages + Cloudflare Worker）
+## 让别人在线也能用（GitHub Pages + Render）
 
-GitHub Pages 只能托管静态文件，存不了密钥也转发不了请求，所以线上要再挂一个免费的服务端：
+GitHub Pages 只能托管静态文件，存不了密钥也转发不了请求，所以线上要再挂一个能保存密钥的服务端。
 
-1. **前端**：Settings → Pages → Branch 选 `main`、Folder 选 `/code` → Save，站点根即演示首页。
-2. **后端**：dash.cloudflare.com → Workers & Pages 新建一个 Worker，把 `worker/astra-worker.js` 整段粘贴进去并 Deploy（不需要本地 Node）。
-3. **密钥与白名单**：该 Worker 的 Settings → Variables → Secrets 加 `STEP_API_KEY`；Variables 加 `ALLOW_ORIGINS=https://vvvv788.github.io`。
-4. **接线**：把 Worker 地址填进 `code/app.js` 顶部的 `WORKER_API`，再提交一次。
+**为什么默认域名不行**：`*.workers.dev`（Cloudflare Worker 默认域名）在中国大陆会被 SNI 拦截，实测 DNS 能解析但连不上；`*.onrender.com` 与 `github.io` 实测可达，所以走 Render。`worker/astra-worker.js` 保留作为海外部署的备选。
 
-`worker/astra-worker.js` 与 `server/server.js` 是同一套契约的两个部署形态（校验、扩写、措辞软化逻辑一致），改动提示词或结构时两边都要改。未接后端时线上自动回落示例解读，解读页顶部横幅会写明「演示模式」。
+1. **前端**：Pages 的发布目录只能选 `root` 或 `/docs`，选不到 `/code`，所以仓库根放了一个跳转页 `index.html`（配 `.nojekyll` 关掉 Jekyll 渲染），根链接会立即进入 `code/` 演示首页。
+2. **后端**：render.com → New → **Blueprint** → 连接本仓库，`render.yaml` 会自动带出 Node 运行时、启动命令 `node server/server.js`、健康检查 `/api/health` 与白名单变量；只需在提示处填入 `STEP_API_KEY`。
+3. **接线**：把 Render 给的 `https://astra.onrender.com` 填进 `code/app.js` 顶部的 `PUBLIC_API`，提交后即生效。
+
+`server/server.js` 与 `worker/astra-worker.js` 是同一套契约的两个部署形态（校验、扩写、措辞软化逻辑一致），改提示词或结构时两边都要改。`ALLOW_ORIGINS` 与 `RATE_PER_DAY` 只在公开部署时设置；不设置时服务端保持只对本机与 `file://` 开放，本机演示不受限。未接后端或超出当日额度时，前端自动回落示例解读，解读页顶部横幅会写明「演示模式」。
+
 

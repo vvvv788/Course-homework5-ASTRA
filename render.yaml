@@ -1,0 +1,16 @@
+# Render 免费服务配置：在 render.com 选 New → Blueprint → 连这个仓库，会自动读到下面的配置
+# 唯一需要你手动填的是 STEP_API_KEY（Blueprint 会提示输入，值不进仓库）
+services:
+  - type: web
+    name: astra
+    runtime: node
+    plan: free
+    startCommand: node server/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: STEP_API_KEY
+        sync: false
+      - key: ALLOW_ORIGINS
+        value: https://vvvv788.github.io
+      - key: RATE_PER_DAY
+        value: "20"

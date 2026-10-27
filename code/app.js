@@ -7,10 +7,10 @@
   "use strict";
 
   /* 接口地址：双击 file:// 打开指向本机服务；本机 http 走同源代理；
-     线上静态托管（GitHub Pages 没有后端）把 worker/astra-worker.js 部署后的地址填到 WORKER_API */
-  const WORKER_API = "";   // 例：https://astra-api.你的子域.workers.dev
+     线上静态托管（GitHub Pages 没有后端）把公开部署的地址填到 PUBLIC_API */
+  const PUBLIC_API = "";   // 例：https://astra.onrender.com
   const API_ORIGIN = location.protocol === "file:" ? "http://localhost:8787"
-    : /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? "" : WORKER_API;
+    : /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? "" : PUBLIC_API;
   const api = p => API_ORIGIN + p;
 
   /* 展示字体：异步补载 Noto Serif SC / Cormorant Garamond，离线或被墙时静默回退本地衬线，

@@ -36,6 +36,31 @@ const TTS_VOICE_EN = process.env.STEP_TTS_VOICE_EN || "Lisa";            // 英�
 const REASONING_EFFORT = process.env.STEP_REASONING_EFFORT || "low";     // 低推理档：报告够用，延迟更短
 const API_BASE = "https://api.stepfun.com/v1";
 const STATIC_DIR = path.join(__dirname, "..", "code");
+/* 公开部署（Render 等）才需要这两项；本机演示留空/0 即保持原来的宽松行为 */
+const ALLOW_ORIGINS = (process.env.ALLOW_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
+const RATE_PER_DAY = parseInt(process.env.RATE_PER_DAY || "0", 10);      // 0 = 不限次
+
+/* 来源闸门：file:// 的 "null"、本机、以及与本服务同源的页面放行，其余需在白名单里 */
+function isAllowedOrigin(origin, host) {
+  if (!origin) return true;                                              // 无 Origin：同源 GET 或 curl
+  if (origin === "null") return true;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+  if (host && origin === "http://" + host) return true;
+  return ALLOW_ORIGINS.includes(origin);
+}
+const dayHits = new Map();
+function clientIp(req) {
+  const fwd = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  return fwd || req.socket.remoteAddress || "unknown";
+}
+function overLimit(req) {
+  if (!RATE_PER_DAY) return false;
+  const key = new Date().toISOString().slice(0, 10) + "|" + clientIp(req);
+  const n = (dayHits.get(key) || 0) + 1;
+  dayHits.set(key, n);
+  if (dayHits.size > 20000) dayHits.clear();
+  return n > RATE_PER_DAY;
+}
 
 /* ---------- 小工具 ---------- */
 function sendJson(res, code, obj) {
@@ -499,9 +524,9 @@ function serveStatic(req, res, url) {
 /* ---------- HTTP 服务 ---------- */
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://" + (req.headers.host || "localhost"));
-  /* 只放行 file://（Origin: null）与本机页面，防止任意网站借 localhost 消耗额度 */
+  /* 只放行 file://（Origin: null）、本机、同源以及白名单里的线上页面，防止任意网站借这台服务消耗额度 */
   const origin = req.headers.origin || "";
-  const corsOk = origin === "null" || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  const corsOk = isAllowedOrigin(origin, req.headers.host);
   if (corsOk) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
@@ -516,7 +541,11 @@ const server = http.createServer(async (req, res) => {
       return res.end();
     }
     if (req.method === "GET" && url.pathname === "/api/health") {
-      return sendJson(res, 200, { ok: true, hasKey: !!API_KEY, chatModel: CHAT_MODEL, ttsModel: TTS_MODEL });
+      return sendJson(res, 200, { ok: true, hasKey: !!API_KEY, chatModel: CHAT_MODEL, ttsModel: TTS_MODEL, ratePerDay: RATE_PER_DAY || "unlimited" });
+    }
+    if (url.pathname.startsWith("/api/")) {
+      if (!corsOk) return sendJson(res, 403, { error: "origin not allowed", origin: origin || "(none)", allow: ALLOW_ORIGINS.join(",") });
+      if (overLimit(req)) return sendJson(res, 429, { error: "今日调用次数已达上限，明天再来或改用本机演示", limit: String(RATE_PER_DAY) });
     }
     if (req.method === "POST" && url.pathname === "/api/reading") return await handleReading(req, res);
     if (req.method === "POST" && url.pathname === "/api/tts") return await handleTts(req, res);
@@ -532,4 +561,6 @@ server.listen(PORT, () => {
   console.log("ASTRA server → http://localhost:" + PORT);
   console.log("  chat model :", CHAT_MODEL, API_KEY ? "(key loaded)" : "(NO KEY — set STEP_API_KEY in server/.env)");
   console.log("  tts  model :", TTS_MODEL);
+  console.log("  来源白名单 :", ALLOW_ORIGINS.length ? ALLOW_ORIGINS.join(", ") : "仅本机与 file://");
+  console.log("  每 IP 日限 :", RATE_PER_DAY || "不限");
 });

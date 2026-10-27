@@ -463,7 +463,7 @@ async function handleQuote(req, res, url) {
     : "为占卜应用首页写一句「今日星象引言」：不超过 22 个字，关于今夜的星空、向未知提问前的安静、或一场自我对话。诗意、克制、有画面感，不用感叹号和 emoji。只输出这一句话，不要其他内容。";
   try {
     const content = await callChat([{ role: "user", content: prompt }], false);
-    const quote = content.replace(/["'“”\n]/g, "").trim().slice(0, 60);
+    const quote = content.replace(/["'“”\n]/g, "").trim().slice(0, lang === "en" ? 140 : 60);   // 英文按词计，60 字符会拦腰截断
     if (!quote) throw new Error("empty quote");
     const val = { quote, date, lang };
     quoteCache.set(key, val);

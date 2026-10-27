@@ -1,0 +1,11 @@
+name = "astra-api"
+main = "astra-worker.js"
+compatibility_date = "2026-10-27"
+
+# 白名单：只有这个来源的页面能调用接口（多个用逗号分隔）
+[vars]
+ALLOW_ORIGINS = "https://vvvv788.github.io"
+RATE_PER_DAY = "20"
+
+# 密钥不要写在这里，用命令行放进加密 Secret：
+#   npx wrangler secret put STEP_API_KEY

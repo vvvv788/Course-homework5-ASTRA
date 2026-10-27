@@ -46,3 +46,15 @@
 | GET | `/api/health` | 服务与模型配置自检 |
 
 可用环境变量覆盖：`STEP_MODEL`、`STEP_TTS_MODEL`、`STEP_TTS_VOICE_ZH`、`STEP_TTS_VOICE_EN`、`STEP_REASONING_EFFORT`、`PORT`。
+
+## 让别人在线也能用（GitHub Pages + Cloudflare Worker）
+
+GitHub Pages 只能托管静态文件，存不了密钥也转发不了请求，所以线上要再挂一个免费的服务端：
+
+1. **前端**：Settings → Pages → Branch 选 `main`、Folder 选 `/code` → Save，站点根即演示首页。
+2. **后端**：dash.cloudflare.com → Workers & Pages 新建一个 Worker，把 `worker/astra-worker.js` 整段粘贴进去并 Deploy（不需要本地 Node）。
+3. **密钥与白名单**：该 Worker 的 Settings → Variables → Secrets 加 `STEP_API_KEY`；Variables 加 `ALLOW_ORIGINS=https://vvvv788.github.io`。
+4. **接线**：把 Worker 地址填进 `code/app.js` 顶部的 `WORKER_API`，再提交一次。
+
+`worker/astra-worker.js` 与 `server/server.js` 是同一套契约的两个部署形态（校验、扩写、措辞软化逻辑一致），改动提示词或结构时两边都要改。未接后端时线上自动回落示例解读，解读页顶部横幅会写明「演示模式」。
+

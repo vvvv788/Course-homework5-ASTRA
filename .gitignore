@@ -1,0 +1,19 @@
+# ---------- 密钥：StepFun API Key 只在本地，绝不上库 ----------
+.env
+*.env
+.env.local
+
+# ---------- 依赖与本地临时产物 ----------
+node_modules/
+.workbuddy/
+npm-debug.log*
+
+# ---------- 编辑器 / 系统杂物 ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*
+
+# ---------- 原始素材（体积大，运行演示时不需要，代码里无引用） ----------
+_assets_src/
+vibe_images/

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="night" data-page-node-id="4EEtakAmcMMmdlId999lvf">
+<head data-page-node-id="m8SXtHkn1AI4VXEi07Ajly">
+  <meta charset="UTF-8" data-page-node-id="SljQpInwz0Kaxib7A7qZLD" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" data-page-node-id="rFn0TAEPqXy5Dl3sEGNApu" />
+  <title>ASTRA · 占卜 Demo</title>
+  <meta name="description" content="ASTRA 星尘占卜：星尘粒子 + 双主题 + 六大占卜系统，解读由 StepFun 大模型实时生成。" data-page-node-id="SoROfLykvBzYOHqc8My2tb" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E" data-page-node-id="GqASLLU1aZRCC0zlyeYTOk" />
+  <link rel="stylesheet" href="styles.css?v=20261027z11" data-page-node-id="AagAQMhv6sn2kIGJKt4ynr" />
+</head>
+<body data-page-node-id="fAsQDgNcj2aiJwMZEkhr4u">
+  <!-- 星尘粒子背景 -->
+  <canvas id="bg" data-page-node-id="NR1mldA9EBOAj9UGJO4qQF"></canvas>
+  <!-- 模块房间光：随六模块切换色温，营造不同的“房间” -->
+  <div class="room" aria-hidden="true"></div>
+
+  <header class="topbar" data-page-node-id="4cGRia1tx5tbS5hQBbtW1E">
+    <div class="brand" data-page-node-id="L5OJ68R6MDg6hXpdQzgqxO">ASTRA <span class="brand-sub" data-i18n="brandSub" data-page-node-id="EUEa2KhcBKjohlUZeRApHp">占卜</span></div>
+    <div class="topbar-dock" role="group" aria-label="界面与声音设置" data-page-node-id="topbarDock">
+      <button id="themeToggle" class="ghost-btn" aria-label="切换日/夜主题" data-page-node-id="g2xUC1wdEHFKuINJtvicm7">夜仪 / 昼谕</button>
+      <button id="cameraToggle" class="ghost-btn" aria-label="开启摄像头交互">🎥 摄像头交互</button>
+      <button id="soundToggle" class="ghost-btn" aria-label="开关揭晓轻音">🔕 轻音</button>
+      <button id="bgmToggle" class="ghost-btn" aria-label="背景音乐开关" data-page-node-id="bgmToggle">🔈 BGM</button>
+      <span class="topbar-sep" aria-hidden="true"></span>
+      <button id="langToggle" class="ghost-btn" aria-label="切换语言" data-page-node-id="langToggle">EN</button>
+    </div>
+  </header>
+
+  <main id="app" data-page-node-id="PS4XSl3fB1HNbjteD1tmPf">
+
+    <!-- ============ 首页 / 系统选择 ============ -->
+    <!-- ============ 首页 / 星径六门（三阶段旅程） ============ -->
+    <section class="screen is-active" data-screen="home">
+      <!-- 阶段一 · 抵达之门 -->
+      <div class="j-stage is-on" data-stage="gate">
+        <div class="gate-scene" id="gateScene">
+          <div class="gate-beyond"></div>
+          <div class="gate-leaf gate-leaf-l"></div>
+          <div class="gate-leaf gate-leaf-r"></div>
+          <div class="gate-bloom"></div>
+        </div>
+        <div class="gate-copy">
+          <h1 class="hero-title" data-i18n-html="heroTitle">在星尘落下之前<br/>先问一句</h1>
+          <p class="hero-sub" data-i18n="heroSub">星径尽头立着六扇门，每一扇后都藏着一套古老的问卜之法。</p>
+          <p class="hero-quote" id="heroQuote" hidden></p>
+          <p class="gate-hint" data-i18n="gateHint">门扉将自行开启 · 亦可轻触门扉</p>
+          <p class="demo-note" id="homeNote" data-i18n="demoNote">当前为演示模式，解读为示例文案，尚未接入大模型。</p>
+        </div>
+      </div>
+
+      <!-- 阶段二 · 旅人身份 -->
+      <div class="j-stage" data-stage="identity">
+        <p class="stage-kicker" data-i18n="idKicker">第一步 · 择一旅人</p>
+        <h2 class="stage-title" data-i18n="idTitle">你以何种身份走过星径？</h2>
+        <p class="stage-sub" data-i18n="idSub">身份会为你点亮一扇相应的门，并替你写下第一句问语。</p>
+        <div class="id-row">
+          <button class="id-card" data-id="wanderer">
+            <span class="id-emblem"><img src="assets/home/id-wanderer.webp" alt="" loading="lazy" /></span>
+            <span class="id-name" data-i18n="idWanderer">迷途旅人</span>
+            <span class="id-line" data-i18n="idWandererLine">问前路：学业、事业、下一步往哪走</span>
+          </button>
+          <button class="id-card" data-id="heart">
+            <span class="id-emblem"><img src="assets/home/id-heart.webp" alt="" loading="lazy" /></span>
+            <span class="id-name" data-i18n="idHeart">心事之人</span>
+            <span class="id-line" data-i18n="idHeartLine">问情感：喜欢、牵挂、复合与告别</span>
+          </button>
+          <button class="id-card" data-id="chooser">
+            <span class="id-emblem"><img src="assets/home/id-chooser.webp" alt="" loading="lazy" /></span>
+            <span class="id-name" data-i18n="idChooser">抉择之人</span>
+            <span class="id-line" data-i18n="idChooserLine">问两难：选甲或乙，开始或停下</span>
+          </button>
+          <button class="id-card" data-id="stargazer">
+            <span class="id-emblem"><img src="assets/home/id-stargazer.webp" alt="" loading="lazy" /></span>
+            <span class="id-name" data-i18n="idStargazer">观星之人</span>
+            <span class="id-line" data-i18n="idStargazerLine">问自身：近况、心境与运势</span>
+          </button>
+        </div>
+        <div class="id-foot">
+          <button class="ghost-btn" id="idBack" data-i18n="idBack">‹ 回到门前</button>
+          <button class="ghost-btn" id="idSkip" data-i18n="idSkip">不选身份 · 随缘而行</button>
+        </div>
+      </div>
+
+      <!-- 阶段三 · 星径六门 -->
+      <div class="j-stage path-stage" data-stage="path">
+        <div class="path-scene" aria-hidden="true"></div>
+        <div class="path-head">
+          <p class="stage-kicker" data-i18n="pathKicker">第二步 · 择门</p>
+          <h2 class="stage-title" data-i18n="pathTitle">星径六门</h2>
+          <p class="id-chip" id="idChip" hidden></p>
+        </div>
+        <div class="door-row" id="doorRow">
+          <button class="door" data-door="tarot">
+            <span class="door-star" hidden>✦</span>
+            <span class="door-arch">
+              <span class="door-beyond"></span>
+              <span class="door-leaf door-leaf-l"></span>
+              <span class="door-leaf door-leaf-r"></span>
+              <span class="door-seam"></span>
+            </span>
+            <span class="door-plate"><b data-i18n="cardTarot">塔罗</b><i data-i18n="cardTarotDesc">三星牌，照见过去·现在·未来</i></span>
+          </button>
+          <button class="door" data-door="gua">
+            <span class="door-star" hidden>✦</span>
+            <span class="door-arch">
+              <span class="door-beyond"></span>
+              <span class="door-leaf door-leaf-l"></span>
+              <span class="door-leaf door-leaf-r"></span>
+              <span class="door-seam"></span>
+            </span>
+            <span class="door-plate"><b data-i18n="cardGua">六爻</b><i data-i18n="cardGuaDesc">三掷铜钱，自下成卦</i></span>
+          </button>
+          <button class="door" data-door="number">
+            <span class="door-star" hidden>✦</span>
+            <span class="door-arch">
+              <span class="door-beyond"></span>
+              <span class="door-leaf door-leaf-l"></span>
+              <span class="door-leaf door-leaf-r"></span>
+              <span class="door-seam"></span>
+            </span>
+            <span class="door-plate"><b data-i18n="cardNumber">灵数</b><i data-i18n="cardNumberDesc">以数问星，静待回响</i></span>
+          </button>
+          <button class="door" data-door="mansion">
+            <span class="door-star" hidden>✦</span>
+            <span class="door-arch">
+              <span class="door-beyond"></span>
+              <span class="door-leaf door-leaf-l"></span>
+              <span class="door-leaf door-leaf-r"></span>
+              <span class="door-seam"></span>
+            </span>
+            <span class="door-plate"><b data-i18n="cardMansion">二十八宿</b><i data-i18n="cardMansionDesc">一宿一兽，星野指路</i></span>
+          </button>
+          <button class="door" data-door="rune">
+            <span class="door-star" hidden>✦</span>
+            <span class="door-arch">
+              <span class="door-beyond"></span>
+              <span class="door-leaf door-leaf-l"></span>
+              <span class="door-leaf door-leaf-r"></span>
+              <span class="door-seam"></span>
+            </span>
+            <span class="door-plate"><b data-i18n="cardRune">北欧符文</b><i data-i18n="cardRuneDesc">三枚符石，掷地听讯</i></span>
+          </button>
+          <button class="door" data-door="oracle">
+            <span class="door-star" hidden>✦</span>
+            <span class="door-arch">
+              <span class="door-beyond"></span>
+              <span class="door-leaf door-leaf-l"></span>
+              <span class="door-leaf door-leaf-r"></span>
+              <span class="door-seam"></span>
+            </span>
+            <span class="door-plate"><b data-i18n="cardOracle">寺观灵签</b><i data-i18n="cardOracleDesc">摇筒求签，诗示吉凶</i></span>
+          </button>
+        </div>
+        <div class="path-walker" aria-hidden="true"><span class="path-walker-fig"></span></div>
+        <div class="path-foot">
+          <button class="ghost-btn" id="doorRandom" data-i18n="doorRandom">✦ 随缘推门</button>
+          <button class="ghost-btn" id="pathBack" data-i18n="pathBack">‹ 换个身份</button>
+          <p class="demo-note" id="pathNote"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 塔罗（环形星盘） ============ -->
+    <section class="screen" data-screen="tarot" data-page-node-id="81RvOdEYfAF3LJCXp4cqta">
+      <div class="panel-head" data-page-node-id="MQpDG7wacIQEqAyfABvlBH">
+        <button class="back-btn" data-go="home" data-i18n="backBtn" data-page-node-id="NNWjc21ZPVGTl1NG9BtqFV">‹ 返回</button>
+        <h2 class="panel-title" data-i18n="titleTarot" data-page-node-id="Gm2GCcAAE6GAFbWroMZkmh">塔罗 · 环星指引</h2>
+      </div>
+      <p class="hint" id="tarotHint" data-i18n="hintTarot" data-page-node-id="LniKITFKYNizx0sI6PDM0d">点击「洗牌」生成牌阵，转动星盘让卡片停在顶部「选牌口」。三张对应 过去 / 现在 / 未来。</p>
+      <div class="ask-row">
+        <input class="ask-input" maxlength="60" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
+        <button class="ask-random" type="button" data-ask-random data-i18n="askRandom" data-i18n-aria="askRandomAria" aria-label="随缘换一个问题">随缘一问</button>
+      </div>
+      <div class="ask-chips" data-ask-chips></div>
+      <div class="tarot-dial-wrap" id="tarotDialWrap" data-page-node-id="6GYirkb2n355NQqbIx1MML">
+        <div class="dial-selector" id="dialSelector" data-page-node-id="dialSel"><span data-i18n="dialSel">选牌口</span></div>
+        <div class="tarot-dial" id="tarotDial" data-page-node-id="6qR1AaSDXtjXS3igwT5JuR"></div>
+        <div class="dial-center" id="dialCenter" data-page-node-id="dialCtr">—</div>
+      </div>
+      <div class="tarot-slots" id="tarotSlots" data-page-node-id="bwh7C7Bl00hkzwxyucHYpU"></div>
+      <div class="actions" data-page-node-id="IwJ5EVGT9j95FcAiv5gXaw">
+        <button class="primary-btn" id="tarotShuffle" data-i18n="tarotShuffle" data-page-node-id="eD5GW04pt1qHSLyyXbbVcr">洗牌</button>
+        <button class="primary-btn" id="tarotReveal" disabled data-i18n="tarotReveal" data-page-node-id="jjrfYlBVlhNnq6YAdeGSP5">揭示解读</button>
+        <button class="ghost-btn" id="tarotReset" hidden data-i18n="tarotReset" data-page-node-id="tarotReset">重新抽牌</button>
+      </div>
+    </section>
+
+    <!-- ============ 六爻（起卦法阵） ============ -->
+    <section class="screen" data-screen="gua" data-page-node-id="Oxr2WJ5RXlS7LKy4FviIpc">
+      <div class="panel-head" data-page-node-id="U5LnYtuVwcHIWbcCHyh1hI">
+        <button class="back-btn" data-go="home" data-i18n="backBtn" data-page-node-id="BDEefcduFPkMrNtokkfQie">‹ 返回</button>
+        <h2 class="panel-title" data-i18n="titleGua" data-page-node-id="OI1ufIzyMSOazZBGs6E2FJ">六爻 · 起卦法阵</h2>
+      </div>
+      <p class="hint" id="guaHint" data-i18n="hintGua" data-page-node-id="i7JB1SDbsifsQKglSQtKrn">点击「摇卦」，连掷六次，自下而上成卦。法阵将逐爻点亮。</p>
+      <div class="ask-row">
+        <input class="ask-input" maxlength="60" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
+        <button class="ask-random" type="button" data-ask-random data-i18n="askRandom" data-i18n-aria="askRandomAria" aria-label="随缘换一个问题">随缘一问</button>
+      </div>
+      <div class="ask-chips" data-ask-chips></div>
+      <div class="gua-stage" id="guaStage" data-page-node-id="guaStage">
+        <canvas class="gua-array" id="guaArray" width="360" height="360" data-page-node-id="guaArray"></canvas>
+        <div class="gua-frame" data-page-node-id="guaFrame">
+          <div class="hex" id="hexWrap" data-page-node-id="ESEGoagghXY44NdnoacLcG"></div>
+        </div>
+        <div class="gua-coins" id="guaCoins" aria-hidden="true"><i class="coin"></i><i class="coin"></i><i class="coin"></i></div>
+        <div class="gua-count" id="guaCount" aria-hidden="true"><b>0</b><span> / 6</span></div>
+      </div>
+      <div class="gua-caption" data-page-node-id="guaCaption">
+        <div class="gua-name" id="guaName" data-page-node-id="guaName"></div>
+        <div class="gua-tris" id="guaTris" aria-hidden="true"></div>
+      </div>
+      <div class="actions" data-page-node-id="FpBytmE4qP4K7ctRDS2rg9">
+        <button class="primary-btn" id="guaToss" data-i18n="guaToss" data-page-node-id="TCHwgfJynuLtIiMLYBBFPn">摇卦</button>
+        <button class="primary-btn" id="guaReveal" disabled data-i18n="guaReveal" data-page-node-id="Vat6WVLbdwyDo0he3uojeK">查看解读</button>
+      </div>
+    </section>
+
+    <!-- ============ 灵数 ============ -->
+    <section class="screen" data-screen="number" data-page-node-id="XaCd6PFNtPuYhIEeuVLpCi">
+      <div class="panel-head" data-page-node-id="iUearll2tUEH73n2jAHsqz">
+        <button class="back-btn" data-go="home" data-i18n="backBtn" data-page-node-id="7WQQSxgkr1EDw7CYGOETtS">‹ 返回</button>
+        <h2 class="panel-title" data-i18n="titleNumber" data-page-node-id="CMJ9r86TfVYg1t5yTsTXOd">灵数 · 数之回响</h2>
+      </div>
+      <p class="hint" data-i18n="hintNumber" data-page-node-id="EtpRzksiasfxO12wMmUH2p">写下一段数字（生日、任意 1–9 位皆可），点「生成」，星尘会为你凝出一枚数之印记。</p>
+      <div class="ask-row">
+        <input class="ask-input" maxlength="60" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
+        <button class="ask-random" type="button" data-ask-random data-i18n="askRandom" data-i18n-aria="askRandomAria" aria-label="随缘换一个问题">随缘一问</button>
+      </div>
+      <div class="ask-chips" data-ask-chips></div>
+      <div class="num-panel" data-page-node-id="YNamsnpaEpszU8sVzbEWaG">
+        <div class="num-input-row">
+          <input id="numInput" class="num-input" inputmode="numeric" maxlength="9" data-i18n-ph="numPh" placeholder="例如 19980918" aria-label="输入数字" data-page-node-id="DFYhYKpmRetGtiUe6EhNSN" />
+          <button class="primary-btn" id="numGen" data-i18n="numGen" data-page-node-id="DINYw982NkOJSKwFzBXVu4">生成</button>
+        </div>
+        <div class="num-quick" id="numQuick">
+          <button class="num-chip" type="button" data-fill="19980918" data-i18n="numBirth">生日</button>
+          <button class="num-chip" type="button" data-fill="today" data-i18n="numToday">今日</button>
+          <button class="num-chip" type="button" data-fill="777" data-i18n="numLucky">吉数</button>
+          <button class="num-chip num-chip-rand" type="button" id="numRandom" data-i18n="numRandom">✦ 随机</button>
+        </div>
+        <p class="num-guide" data-i18n="numGuide">不想自己输入？点「随机」，让星尘替你选一个数字</p>
+      </div>
+      <div class="num-result" id="numResult" data-page-node-id="PtCwaK2YEpRX2Eq3vHVcQ6"></div>
+      <div class="actions num-actions" data-page-node-id="yR6pqv9yD8lB0LDCmcvASP">
+        <p class="num-reveal-tip" data-i18n="numRevealTip">印记已现 · 点下方展开完整星语</p>
+        <button class="primary-btn" id="numReveal" disabled data-i18n="numReveal" data-page-node-id="atDzkuVFU2U25QedbiDtum">查看解读</button>
+      </div>
+    </section>
+
+    <!-- ============ 二十八宿 ============ -->
+    <section class="screen" data-screen="mansion" data-page-node-id="MansionScreen">
+      <div class="panel-head" data-page-node-id="MansionHead">
+        <button class="back-btn" data-go="home" data-i18n="backBtn" data-page-node-id="MansionBack">‹ 返回</button>
+        <h2 class="panel-title" data-i18n="titleMansion" data-page-node-id="MansionTitle">二十八宿 · 星野指路</h2>
+      </div>
+      <p class="hint" id="mansionHint" data-i18n="hintMansion" data-page-node-id="MansionHint">转动星环，让目标宿停在顶部「取宿口」，或点「摇星」随机点亮一宿。</p>
+      <div class="ask-row">
+        <input class="ask-input" maxlength="60" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
+        <button class="ask-random" type="button" data-ask-random data-i18n="askRandom" data-i18n-aria="askRandomAria" aria-label="随缘换一个问题">随缘一问</button>
+      </div>
+      <div class="ask-chips" data-ask-chips></div>
+      <div class="mansion-stage" id="mansionStage" data-page-node-id="MansionStage">
+        <img class="mansion-atlas" src="assets/mansion/atlas.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        <canvas class="mansion-sky" id="mansionSky" aria-hidden="true"></canvas>
+        <div class="mansion-ring" id="mansionRing" data-page-node-id="MansionRing"></div>
+        <div class="mansion-center" id="mansionCenter" data-page-node-id="MansionCenter">
+          <span class="mc-kicker" data-i18n="mansionKicker">本宿</span>
+          <span class="mc-name">—</span>
+          <span class="mc-meta"></span>
+        </div>
+        <div class="dial-selector" id="mansionSelector" data-page-node-id="MansionSelector"><span data-i18n="mansionSel">取宿口</span></div>
+      </div>
+      <div class="mansion-caption" id="mansionCaption"></div>
+      <div class="actions" data-page-node-id="MansionActions">
+        <button class="primary-btn" id="mansionSpin" data-i18n="mansionSpin" data-page-node-id="MansionSpin">摇星</button>
+        <button class="primary-btn" id="mansionPick" disabled data-i18n="mansionPick" data-page-node-id="MansionPick">取宿指引</button>
+      </div>
+    </section>
+
+    <!-- ============ 北欧符文 ============ -->
+    <section class="screen" data-screen="rune" data-page-node-id="RuneScreen">
+      <div class="panel-head" data-page-node-id="RuneHead">
+        <button class="back-btn" data-go="home" data-i18n="backBtn" data-page-node-id="RuneBack">‹ 返回</button>
+        <h2 class="panel-title" data-i18n="titleRune" data-page-node-id="RuneTitle">北欧符文 · 远古之语</h2>
+      </div>
+      <p class="hint" id="runeHint" data-i18n="hintRune" data-page-node-id="RuneHint">点击「掷符」，聆听三枚远古符文的讯息。</p>
+      <div class="ask-row">
+        <input class="ask-input" maxlength="60" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
+        <button class="ask-random" type="button" data-ask-random data-i18n="askRandom" data-i18n-aria="askRandomAria" aria-label="随缘换一个问题">随缘一问</button>
+      </div>
+      <div class="ask-chips" data-ask-chips></div>
+      <div class="rune-tray" data-page-node-id="RuneTray">
+        <div class="rune-row" id="runeRow" data-page-node-id="RuneRow"></div>
+      </div>
+      <div class="actions" data-page-node-id="RuneActions">
+        <button class="primary-btn" id="runeCast" data-i18n="runeCast" data-page-node-id="RuneCast">掷符</button>
+        <button class="primary-btn" id="runeReveal" disabled data-i18n="runeReveal" data-page-node-id="RuneReveal">查看解读</button>
+      </div>
+    </section>
+
+    <!-- ============ 寺观灵签 ============ -->
+    <section class="screen" data-screen="oracle" data-page-node-id="OracleScreen">
+      <div class="panel-head" data-page-node-id="OracleHead">
+        <button class="back-btn" data-go="home" data-i18n="backBtn" data-page-node-id="OracleBack">‹ 返回</button>
+        <h2 class="panel-title" data-i18n="titleOracle" data-page-node-id="OracleTitle">寺观灵签 · 一签之示</h2>
+      </div>
+      <p class="hint" id="oracleHint" data-i18n="hintOracle" data-page-node-id="OracleHint">点击「求签」，静心摇筒，得一签之示。</p>
+      <div class="ask-row">
+        <input class="ask-input" maxlength="60" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
+        <button class="ask-random" type="button" data-ask-random data-i18n="askRandom" data-i18n-aria="askRandomAria" aria-label="随缘换一个问题">随缘一问</button>
+      </div>
+      <div class="ask-chips" data-ask-chips></div>
+      <div class="oracle-stage" id="oracleStage" data-page-node-id="OracleStage">
+        <img class="oracle-altar" src="assets/oracle/altar.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        <div class="oracle-halo" aria-hidden="true"></div>
+        <div class="oracle-smoke" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="oracle-cup" id="oracleCup" aria-hidden="true" data-page-node-id="OracleCup">
+          <div class="cup-sticks">
+            <i style="left:10px;height:26px"></i><i style="left:23px;height:34px"></i><i style="left:36px;height:28px"></i>
+            <i style="left:49px;height:38px"></i><i style="left:62px;height:25px"></i><i style="left:75px;height:32px"></i>
+            <i style="left:88px;height:27px"></i>
+          </div>
+          <span class="cup-label" data-i18n="cupLabel">灵签</span>
+        </div>
+        <div class="oracle-stick" id="oracleStick" data-page-node-id="OracleStick">
+          <span class="stick-head" aria-hidden="true">签</span>
+          <span class="stick-no" id="oracleNum" data-page-node-id="OracleNum"></span>
+          <span class="stick-level" id="oracleLevel"></span>
+        </div>
+      </div>
+      <div class="oracle-caption" id="oracleCaption"></div>
+      <div class="actions" data-page-node-id="OracleActions">
+        <button class="primary-btn" id="oracleDraw" data-i18n="oracleDraw" data-page-node-id="OracleDraw">求签</button>
+        <button class="primary-btn" id="oracleReveal" disabled data-i18n="oracleReveal" data-page-node-id="OracleReveal">看签诗</button>
+      </div>
+    </section>
+
+    <!-- ============ 解读 ============ -->
+    <section class="screen" data-screen="reading" data-page-node-id="M8F3KrpZw6ifpRVKV1Xu0h">
+      <div class="panel-head" data-page-node-id="6NVekxMohck4YaFTRObJQJ">
+        <button class="back-btn" data-go="home" data-i18n="backBtn" data-page-node-id="sa6tgBVU16VRQvJTiOfcYM">‹ 返回</button>
+        <h2 class="panel-title" id="readingTitle" data-i18n="readingTitle" data-page-node-id="cojvmPSp2qVoXXssRGvm5H">解读</h2>
+        <div class="demo-banner" id="readingBanner" data-i18n="demoBanner" data-page-node-id="yCg4CiKX6rCPMg9Lz3AwP0">演示模式 · 示例解读，尚未接入大模型</div>
+      </div>
+      <div class="reading-loading" id="readingLoading" hidden data-page-node-id="readingLoading">
+        <div class="rl-head">
+          <b id="rlStatus" data-i18n="rlWorking">正在生成解读</b>
+          <span class="rl-elapsed" id="rlElapsed"></span>
+        </div>
+        <p class="rl-desc" id="rlDesc"></p>
+        <div class="rl-ritual" id="rlRitual" aria-hidden="true"></div>
+        <div class="rl-track" id="rlTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="解读生成进度">
+          <i class="rl-fill" id="rlFill"></i>
+        </div>
+        <ol class="rl-steps" id="rlSteps">
+          <li data-i18n="rlStep1">整理取象</li>
+          <li data-i18n="rlStep2">解析象征</li>
+          <li data-i18n="rlStep3">对应所问</li>
+          <li data-i18n="rlStep4">生成建议</li>
+        </ol>
+        <p class="rl-lore" id="rlLore" aria-live="polite"></p>
+        <p class="rl-cosmos" id="rlCosmos"></p>
+        <div class="rl-base">
+          <p class="rl-foot" data-i18n="rlWaitHint">通常需要 15–30 秒，可以先把问题在心里过一遍。</p>
+          <button class="rl-draw" id="rlDraw" type="button" data-i18n="rlDraw">✦ 换一条星语</button>
+        </div>
+      </div>
+      <div class="vortex" id="vortex" data-page-node-id="WMoE4ZHRwRDvJMkkSSm1DY"><span data-page-node-id="Fnyyr1I3eFrAjBygNiFkEh"></span><span data-page-node-id="ocxEU3RV9QZKnLI4nT8FeE"></span><span data-page-node-id="Fej8FWrcOUA88TLTEgiIZc"></span></div>
+      <div class="reading-wrap" data-page-node-id="readingWrap">
+        <div class="reading-rail" id="readingRail">
+          <aside class="reading-stage" id="readingStage" aria-hidden="true" data-page-node-id="readingStage"></aside>
+          <div class="reading-rail-q" id="readingRailQ" hidden>
+            <span class="rq-tag" id="readingRailQTag"></span>
+            <p class="rq-text" id="readingRailQText"></p>
+          </div>
+          <nav class="reading-outline" id="readingOutline" aria-label="解读目录" hidden></nav>
+          <div class="reading-tools" id="readingTools" hidden data-page-node-id="readingTools">
+            <button class="ghost-btn" id="readingSpeak" data-i18n="readingSpeak" data-page-node-id="readingSpeak">🔊 朗读</button>
+            <button class="ghost-btn" id="readingExport" data-i18n="readingExport" data-page-node-id="readingExport">⤓ 导出星图</button>
+            <button class="ghost-btn" id="readingShare" data-i18n="readingShare" data-page-node-id="readingShare">❋ 分享链接</button>
+            <button class="ghost-btn" id="readingExit" data-go="home" data-i18n="readingExit" data-page-node-id="readingExit">✕ 退出</button>
+          </div>
+        </div>
+        <div class="reading" id="readingBody" data-page-node-id="BZlxxWExyqoMv6wNpGb4nk"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 摄像头交互：本地自拍预览 + 控制环叠加，仅本机处理，不上传 -->
+  <div id="camWrap" class="cam-wrap" hidden data-page-node-id="camWrap">
+    <video id="camVideo" playsinline muted data-page-node-id="camVideo"></video>
+    <button id="camClose" class="ghost-btn cam-close" data-i18n="camClose" data-page-node-id="camClose">关闭</button>
+    <div class="cam-status" data-i18n="camStatus" data-page-node-id="camStatus">画面只在本地处理，不上传</div>
+    <div class="cam-gesture" id="camGesture" data-page-node-id="camG">手势：检测中…</div>
+    <ul class="cam-guide" id="camGuide">
+      <li><b>🖐</b><span data-i18n="cgOpen">张开手掌 · 移动光标，停住即选中</span></li>
+    </ul>
+  </div>
+  <canvas id="camReticle" class="cam-reticle" data-page-node-id="camReticle"></canvas>
+
+  <!-- 换屏幕布：遮蔽 → 换房间 → 退去 -->
+  <div class="scene-veil" id="sceneVeil" aria-hidden="true"><i></i><i></i></div>
+  <!-- 揭晓仪式感：星尘向中心聚拢的 overlay（pointer-events: none，不挡操作） -->
+  <canvas id="revealVeil" class="reveal-veil" data-page-node-id="revealVeil"></canvas>
+  <button class="reveal-skip ghost-btn" id="revealSkip" hidden data-i18n="skipReveal" data-page-node-id="revealSkip">跳过</button>
+
+  <!-- 分享链接弹窗：链接自包含整份解读，无需服务器 -->
+  <div class="share-modal" id="shareModal" hidden data-page-node-id="shareModal">
+    <div class="share-card" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+      <div class="share-title" id="shareTitle" data-i18n="shareTitle">分享这份星图</div>
+      <p class="share-hint" id="shareHint" data-i18n="shareHint">链接内已包含完整解读内容，对方打开即可直接查看，无需服务器。</p>
+      <div class="share-base" id="shareBaseRow" hidden>
+        <label for="shareBaseInput" data-i18n="shareBaseLabel">站点公开地址</label>
+        <input class="share-input" id="shareBaseInput" data-i18n-ph="shareBasePh" placeholder="https://用户名.github.io/HW05/" spellcheck="false" autocomplete="off" />
+        <p class="share-note" data-i18n="shareBaseNote">部署后会自动使用当前站点地址；本地预览先填这里，生成的链接部署后即可打开。</p>
+      </div>
+      <input class="share-input" id="shareInput" readonly data-page-node-id="shareInput" />
+      <div class="share-actions">
+        <button class="ghost-btn" id="shareCopy" data-i18n="shareCopy">复制链接</button>
+        <button class="ghost-btn" id="shareClose" data-i18n="shareClose">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js 全局版（本地内置，避免 CDN 不可用时阻塞页面脚本） -->
+  <script src="vendor/three.min.js"></script>
+  <!-- MediaPipe Hands：真实手势（手掌移动光标 / 停住选中）。本地内置，离线可用；加载失败明确提示 -->
+  <script async src="vendor/mediapipe/hands.js"></script>
+  <script src="app.js?v=20261027z11"></script>
+</body>
+</html>

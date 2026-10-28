@@ -47,15 +47,23 @@
 
 可用环境变量覆盖：`STEP_MODEL`、`STEP_TTS_MODEL`、`STEP_TTS_VOICE_ZH`、`STEP_TTS_VOICE_EN`、`STEP_REASONING_EFFORT`、`PORT`。
 
-## 让别人在线也能用（GitHub Pages + Render）
+## 在线访问与可选的后端
 
-GitHub Pages 只能托管静态文件，存不了密钥也转发不了请求，所以线上要再挂一个能保存密钥的服务端。
+**当前状态**：https://vvvv788.github.io/Course-homework5-ASTRA/ 可直接打开完整演示（六大占卜系统、中英双语、四套主题、隔空手势），解读为内置示例文案，页面顶部与报告底部都会标明「演示模式」。要拿到按你的问题实时生成的 StepFun 解读，请在本地双击 `启动演示.bat`。
 
-**为什么默认域名不行**：`*.workers.dev`（Cloudflare Worker 默认域名）在中国大陆会被 SNI 拦截，实测 DNS 能解析但连不上；`*.onrender.com` 与 `github.io` 实测可达，所以走 Render。`worker/astra-worker.js` 保留作为海外部署的备选。
+**为什么在线版没有接大模型**：GitHub Pages 只能托管静态文件，存不了密钥也转发不了请求，所以线上必须再挂一个能保存密钥的服务端；而免注册费、不要信用卡、且国内可达的免费服务端只剩少数几家，实测矩阵如下。
 
-1. **前端**：Pages 的发布目录只能选 `root` 或 `/docs`，选不到 `/code`，所以仓库根放了一个跳转页 `index.html`（配 `.nojekyll` 关掉 Jekyll 渲染），根链接会立即进入 `code/` 演示首页。
-2. **后端**：render.com → New → **Blueprint** → 连接本仓库，`render.yaml` 会自动带出 Node 运行时、启动命令 `node server/server.js`、健康检查 `/api/health` 与白名单变量；只需在提示处填入 `STEP_API_KEY`。
-3. **接线**：把 Render 给的 `https://astra.onrender.com` 填进 `code/app.js` 顶部的 `PUBLIC_API`，提交后即生效。
+| 托管 | 国内可达性（实测） | 是否要信用卡 | 结论 |
+| --- | --- | --- | --- |
+| `*.workers.dev`（Cloudflare Worker） | DNS 能解析但 TCP 连不上 | 不要 | ❌ 放弃 |
+| `*.vercel.app` | 超时 | 不要 | ❌ 被污染 |
+| `huggingface.co` | 超时（DNS 污染） | 不要 | ❌ 后台进不去 |
+| `*.onrender.com` + `console.render.com` | ✅ 可达 | **要绑卡** | ⚠️ 无国际卡则卡住 |
+| `*.koyeb.app` + `app.koyeb.com` | ✅ 可达 | 不要 | ✅ 若要继续，选它 |
+
+**若要继续接后端**（代码已备好，零改动）：Koyeb → Create a Web Service → 连本仓库 `main` → Buildpack 选 **Node.js**、Run command 填 `node server/server.js`、区域 **Singapore**、环境变量 `STEP_API_KEY`（Secret）、`ALLOW_ORIGINS=https://vvvv788.github.io`、`RATE_PER_DAY=20`；拿到 `https://…koyeb.app` 后填进 `code/app.js` 顶部的 `PUBLIC_API` 并提交即生效。Render 路径见 `render.yaml`（Blueprint 会自动带出同样的配置），`worker/astra-worker.js` 保留作为海外备选。
+
+**前端**：Pages 的发布目录只能选 `root` 或 `/docs`，选不到 `/code`，所以仓库根放了一个跳转页 `index.html`（配 `.nojekyll` 关掉 Jekyll 渲染），根链接会立即进入 `code/` 演示首页。
 
 `server/server.js` 与 `worker/astra-worker.js` 是同一套契约的两个部署形态（校验、扩写、措辞软化逻辑一致），改提示词或结构时两边都要改。`ALLOW_ORIGINS` 与 `RATE_PER_DAY` 只在公开部署时设置；不设置时服务端保持只对本机与 `file://` 开放，本机演示不受限。未接后端或超出当日额度时，前端自动回落示例解读，解读页顶部横幅会写明「演示模式」。
 

@@ -3,12 +3,24 @@
 <head data-page-node-id="m8SXtHkn1AI4VXEi07Ajly">
   <meta charset="UTF-8" data-page-node-id="SljQpInwz0Kaxib7A7qZLD" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" data-page-node-id="rFn0TAEPqXy5Dl3sEGNApu" />
-  <title>ASTRA · 占卜 Demo</title>
-  <meta name="description" content="ASTRA 星尘占卜：星尘粒子 + 双主题 + 六大占卜系统，解读由 StepFun 大模型实时生成。" data-page-node-id="SoROfLykvBzYOHqc8My2tb" />
+  <title>ASTRA · 星尘问语</title>
+  <meta name="description" content="ASTRA 星尘问语：用六种象征体系探索困惑，阅读或听取解读，保存行动与回看。" data-page-node-id="SoROfLykvBzYOHqc8My2tb" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E" data-page-node-id="GqASLLU1aZRCC0zlyeYTOk" />
-  <link rel="stylesheet" href="styles.css?v=20261027z14" data-page-node-id="AagAQMhv6sn2kIGJKt4ynr" />
+  <link rel="stylesheet" href="styles.css?v=20261107locale6" data-page-node-id="AagAQMhv6sn2kIGJKt4ynr" />
+  <meta name="color-scheme" content="dark light" />
+  <link rel="stylesheet" href="experience.css?v=20261107locale6" />
+  <link rel="stylesheet" href="reading.css?v=20261107locale6" />
+  <link rel="stylesheet" href="home.css?v=20261107locale6" />
+  <link rel="stylesheet" href="identity.css?v=20261107locale6" />
+  <link rel="stylesheet" href="gua.css?v=20261107locale6" />
+  <link rel="stylesheet" href="locales.css?v=20261107locale6" />
+  <link rel="stylesheet" href="realm-gestures.css?v=20261107locale6" />
+  <link rel="stylesheet" href="gesture-tarot.css?v=20261107locale6" />
+  <link rel="stylesheet" href="reading-workbench.css?v=20261107locale6" />
+  <link rel="stylesheet" href="audio-dock.css?v=20261107locale6" />
 </head>
 <body data-page-node-id="fAsQDgNcj2aiJwMZEkhr4u">
+  <a class="skip-link" href="#app" data-i18n="uxSkip">跳到主要内容</a>
   <!-- 星尘粒子背景 -->
   <canvas id="bg" data-page-node-id="NR1mldA9EBOAj9UGJO4qQF"></canvas>
   <!-- 模块房间光：随六模块切换色温，营造不同的“房间” -->
@@ -16,63 +28,89 @@
 
   <header class="topbar" data-page-node-id="4cGRia1tx5tbS5hQBbtW1E">
     <div class="brand" data-page-node-id="L5OJ68R6MDg6hXpdQzgqxO">ASTRA <span class="brand-sub" data-i18n="brandSub" data-page-node-id="EUEa2KhcBKjohlUZeRApHp">占卜</span></div>
+    <nav class="product-nav" aria-label="主要导航">
+      <button class="ghost-btn" id="navHome" data-i18n="uxHome">首页</button>
+      <button class="ghost-btn" id="navExplore" data-i18n="uxExplore">探索六门</button>
+      <button class="ghost-btn" id="navRecords" data-i18n="uxRecords">我的记录</button>
+      <button class="ghost-btn" id="navHelp" data-i18n="uxHelp">帮助与设置</button>
+    </nav>
     <div class="topbar-dock" role="group" aria-label="界面与声音设置" data-page-node-id="topbarDock">
       <button id="themeToggle" class="ghost-btn" aria-label="切换日/夜主题" data-page-node-id="g2xUC1wdEHFKuINJtvicm7">夜仪 / 昼谕</button>
       <button id="cameraToggle" class="ghost-btn" aria-label="开启摄像头交互">🎥 摄像头交互</button>
       <button id="soundToggle" class="ghost-btn" aria-label="开关揭晓轻音">🔕 轻音</button>
       <button id="bgmToggle" class="ghost-btn" aria-label="背景音乐开关" data-page-node-id="bgmToggle">🔈 BGM</button>
       <span class="topbar-sep" aria-hidden="true"></span>
-      <button id="langToggle" class="ghost-btn" aria-label="切换语言" data-page-node-id="langToggle">EN</button>
+      <select id="langToggle" class="ghost-btn locale-select" aria-label="Interface language"><option value="zh">中文</option><option value="en">English</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="fr">Français</option><option value="es">Español</option></select>
     </div>
   </header>
 
-  <main id="app" data-page-node-id="PS4XSl3fB1HNbjteD1tmPf">
+  <main tabindex="-1" id="app" data-page-node-id="PS4XSl3fB1HNbjteD1tmPf">
 
     <!-- ============ 首页 / 系统选择 ============ -->
     <!-- ============ 首页 / 星径六门（三阶段旅程） ============ -->
     <section class="screen is-active" data-screen="home">
       <!-- 阶段一 · 抵达之门 -->
       <div class="j-stage is-on" data-stage="gate">
-        <div class="gate-scene" id="gateScene">
-          <div class="gate-beyond"></div>
-          <div class="gate-leaf gate-leaf-l"></div>
-          <div class="gate-leaf gate-leaf-r"></div>
-          <div class="gate-bloom"></div>
+        <div class="gate-visual">
+          <div class="gate-scene" id="gateScene" role="button" tabindex="0" aria-label="探索旅人身份">
+            <div class="gate-beyond"></div>
+            <div class="gate-leaf gate-leaf-l"></div>
+            <div class="gate-leaf gate-leaf-r"></div>
+            <div class="gate-bloom"></div>
+          </div>
+          <p class="gate-hint" data-i18n="gateHint">轻触门扉，启程入境</p>
+          <p class="hero-quote" id="heroQuote" hidden></p>
         </div>
         <div class="gate-copy">
           <h1 class="hero-title" data-i18n-html="heroTitle">在星尘落下之前<br/>先问一句</h1>
-          <p class="hero-sub" data-i18n="heroSub">星径尽头立着六扇门，每一扇后都藏着一套古老的问卜之法。</p>
-          <p class="hero-quote" id="heroQuote" hidden></p>
-          <p class="gate-hint" data-i18n="gateHint">门扉将自行开启 · 亦可轻触门扉</p>
-          <p class="demo-note" id="homeNote" data-i18n="demoNote">当前为演示模式，解读为示例文案，尚未接入大模型。</p>
+          <p class="hero-sub" data-i18n="heroSub">借六种象征整理困惑，带走一份解读与行动。</p>
+          <div class="entry-panel">
+            <div class="entry-label"><label for="entryQuestion" data-i18n="uxQuestion">此刻，你想理清什么？</label><span data-i18n="uxOptional">可留白</span></div>
+            <textarea id="entryQuestion" maxlength="300" rows="2" data-i18n-ph="uxQuestionPh" placeholder="例如：在读研和工作之间，我最需要想清楚什么？" aria-describedby="entryPrivacy entryCounter"></textarea>
+            <div class="entry-meta"><span id="entryPrivacy" data-i18n="uxEntryPrivacy">问语仅用于本次 AI 解读。</span><span id="entryCounter">0 / 300</span></div>
+            <div class="intent-chips" aria-label="提问示例">
+              <button class="ghost-btn" data-intent="career" data-i18n="uxCareer">学业与工作</button>
+              <button class="ghost-btn" data-intent="love" data-i18n="uxLove">关系与心事</button>
+              <button class="ghost-btn" data-intent="choice" data-i18n="uxChoice">两难与选择</button>
+              <button class="ghost-btn" data-intent="self" data-i18n="uxSelf">当下的自己</button>
+            </div>
+          </div>
+          <div class="entry-journey">
+            <div class="entry-actions">
+              <button class="primary-btn" id="startGuided" data-i18n="uxStart">选择旅人身份 →</button>
+              <button class="ghost-btn" id="exploreDoors" data-i18n="uxBrowse">跳过身份，直接选门 ↗</button>
+            </div>
+            <p class="demo-note" id="homeNote" data-i18n="uxHomeDemo">内置示例 · 非实时解读</p>
+            <p id="usageNote" class="usage-note" hidden></p>
+          </div>
         </div>
       </div>
 
       <!-- 阶段二 · 旅人身份 -->
-      <div class="j-stage" data-stage="identity">
+      <div class="j-stage" id="travelerStage" data-stage="identity">
         <p class="stage-kicker" data-i18n="idKicker">第一步 · 择一旅人</p>
         <h2 class="stage-title" data-i18n="idTitle">你以何种身份走过星径？</h2>
-        <p class="stage-sub" data-i18n="idSub">身份会为你点亮一扇相应的门，并替你写下第一句问语。</p>
-        <div class="id-row">
+        <p class="stage-sub" data-i18n="idSub">选择一个贴近此刻的身份，带着你的问语继续。</p>
+        <div class="id-row" role="group" aria-label="选择旅人身份" data-i18n-aria="idGroup">
           <button class="id-card" data-id="wanderer">
-            <span class="id-emblem"><img src="assets/home/id-wanderer.webp" alt="" loading="lazy" /></span>
-            <span class="id-name" data-i18n="idWanderer">迷途旅人</span>
-            <span class="id-line" data-i18n="idWandererLine">问前路：学业、事业、下一步往哪走</span>
+            <span class="id-emblem"><img src="assets/home/id-wanderer.webp" alt="" width="400" height="400" decoding="async" /></span>
+            <span class="id-index" aria-hidden="true">01</span>
+            <span class="id-copy"><span class="id-name" data-i18n="idWanderer">迷途旅人</span><span class="id-line" data-i18n="idWandererLine">问前路：学业、事业、下一步往哪走</span><span class="id-enter"><span data-i18n="idEnter">以此身份启程</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></span>
           </button>
           <button class="id-card" data-id="heart">
-            <span class="id-emblem"><img src="assets/home/id-heart.webp" alt="" loading="lazy" /></span>
-            <span class="id-name" data-i18n="idHeart">心事之人</span>
-            <span class="id-line" data-i18n="idHeartLine">问情感：喜欢、牵挂、复合与告别</span>
+            <span class="id-emblem"><img src="assets/home/id-heart.webp" alt="" width="400" height="400" decoding="async" /></span>
+            <span class="id-index" aria-hidden="true">02</span>
+            <span class="id-copy"><span class="id-name" data-i18n="idHeart">心事之人</span><span class="id-line" data-i18n="idHeartLine">问情感：喜欢、牵挂、复合与告别</span><span class="id-enter"><span data-i18n="idEnter">以此身份启程</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></span>
           </button>
           <button class="id-card" data-id="chooser">
-            <span class="id-emblem"><img src="assets/home/id-chooser.webp" alt="" loading="lazy" /></span>
-            <span class="id-name" data-i18n="idChooser">抉择之人</span>
-            <span class="id-line" data-i18n="idChooserLine">问两难：选甲或乙，开始或停下</span>
+            <span class="id-emblem"><img src="assets/home/id-chooser.webp" alt="" width="400" height="400" decoding="async" /></span>
+            <span class="id-index" aria-hidden="true">03</span>
+            <span class="id-copy"><span class="id-name" data-i18n="idChooser">抉择之人</span><span class="id-line" data-i18n="idChooserLine">问两难：选甲或乙，开始或停下</span><span class="id-enter"><span data-i18n="idEnter">以此身份启程</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></span>
           </button>
           <button class="id-card" data-id="stargazer">
-            <span class="id-emblem"><img src="assets/home/id-stargazer.webp" alt="" loading="lazy" /></span>
-            <span class="id-name" data-i18n="idStargazer">观星之人</span>
-            <span class="id-line" data-i18n="idStargazerLine">问自身：近况、心境与运势</span>
+            <span class="id-emblem"><img src="assets/home/id-stargazer.webp" alt="" width="400" height="400" decoding="async" /></span>
+            <span class="id-index" aria-hidden="true">04</span>
+            <span class="id-copy"><span class="id-name" data-i18n="idStargazer">观星之人</span><span class="id-line" data-i18n="idStargazerLine">问自身：近况、心境与运势</span><span class="id-enter"><span data-i18n="idEnter">以此身份启程</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></span>
           </button>
         </div>
         <div class="id-foot">
@@ -87,6 +125,8 @@
         <div class="path-head">
           <p class="stage-kicker" data-i18n="pathKicker">第二步 · 择门</p>
           <h2 class="stage-title" data-i18n="pathTitle">星径六门</h2>
+          <p class="path-guidance" id="pathGuidance" role="status"></p>
+          <button class="ghost-btn" id="editEntryQuestion" data-i18n="uxEditQuestion">修改问题</button>
           <p class="id-chip" id="idChip" hidden></p>
         </div>
         <div class="door-row" id="doorRow">
@@ -166,9 +206,14 @@
         <button class="back-btn" data-go="home" data-i18n="backBtn" data-page-node-id="NNWjc21ZPVGTl1NG9BtqFV">‹ 返回</button>
         <h2 class="panel-title" data-i18n="titleTarot" data-page-node-id="Gm2GCcAAE6GAFbWroMZkmh">塔罗 · 环星指引</h2>
       </div>
-      <p class="hint" id="tarotHint" data-i18n="hintTarot" data-page-node-id="LniKITFKYNizx0sI6PDM0d">点击「洗牌」生成牌阵，转动星盘让卡片停在顶部「选牌口」。三张对应 过去 / 现在 / 未来。</p>
+      <div class="tarot-spread-controls">
+        <label><span id="tarotSpreadLabel">选择牌阵</span><select id="tarotSpread" aria-label="选择牌阵"></select></label>
+        <p id="tarotSpreadFocus"></p>
+        <div id="tarotChoices" class="tarot-choice-inputs" hidden><label>A<input id="tarotOptionA" maxlength="80" placeholder="例如：继续读书" /></label><label>B<input id="tarotOptionB" maxlength="80" placeholder="例如：先工作" /></label></div>
+      </div>
+      <p class="hint" id="tarotHint" data-page-node-id="LniKITFKYNizx0sI6PDM0d">点击「洗牌」生成牌阵，转动星盘让卡片停在顶部「选牌口」。三张对应 过去 / 现在 / 未来。</p>
       <div class="ask-row">
-        <input class="ask-input" maxlength="60" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
+        <input class="ask-input" maxlength="300" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
         <button class="ask-random" type="button" data-ask-random data-i18n="askRandom" data-i18n-aria="askRandomAria" aria-label="随缘换一个问题">随缘一问</button>
       </div>
       <div class="ask-chips" data-ask-chips></div>
@@ -177,6 +222,7 @@
         <div class="tarot-dial" id="tarotDial" data-page-node-id="6qR1AaSDXtjXS3igwT5JuR"></div>
         <div class="dial-center" id="dialCenter" data-page-node-id="dialCtr">—</div>
       </div>
+      <div class="tarot-browse"><p id="tarotSwipeHint">🖐 张开手掌，左右滑动浏览 · 停稳后取牌</p><button type="button" id="tarotGrip" class="ghost-btn tarot-grip">下一张 ›</button></div>
       <div class="tarot-slots" id="tarotSlots" data-page-node-id="bwh7C7Bl00hkzwxyucHYpU"></div>
       <div class="actions" data-page-node-id="IwJ5EVGT9j95FcAiv5gXaw">
         <button class="primary-btn" id="tarotShuffle" data-i18n="tarotShuffle" data-page-node-id="eD5GW04pt1qHSLyyXbbVcr">洗牌</button>
@@ -193,7 +239,7 @@
       </div>
       <p class="hint" id="guaHint" data-i18n="hintGua" data-page-node-id="i7JB1SDbsifsQKglSQtKrn">点击「摇卦」，连掷六次，自下而上成卦。法阵将逐爻点亮。</p>
       <div class="ask-row">
-        <input class="ask-input" maxlength="60" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
+        <input class="ask-input" maxlength="300" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
         <button class="ask-random" type="button" data-ask-random data-i18n="askRandom" data-i18n-aria="askRandomAria" aria-label="随缘换一个问题">随缘一问</button>
       </div>
       <div class="ask-chips" data-ask-chips></div>
@@ -202,17 +248,27 @@
         <div class="gua-frame" data-page-node-id="guaFrame">
           <div class="hex" id="hexWrap" data-page-node-id="ESEGoagghXY44NdnoacLcG"></div>
         </div>
-        <div class="gua-coins" id="guaCoins" aria-hidden="true"><i class="coin"></i><i class="coin"></i><i class="coin"></i></div>
+        <button type="button" class="gua-coins" id="guaCoins" aria-label="停稳约1.2秒，掷下一爻"><i class="coin"><span>·</span></i><i class="coin"><span>·</span></i><i class="coin"><span>·</span></i></button>
         <div class="gua-count" id="guaCount" aria-hidden="true"><b>0</b><span> / 6</span></div>
       </div>
       <div class="gua-caption" data-page-node-id="guaCaption">
         <div class="gua-name" id="guaName" data-page-node-id="guaName"></div>
         <div class="gua-tris" id="guaTris" aria-hidden="true"></div>
       </div>
+      <p class="realm-gesture-hint" id="guaGestureHint">掌心光标停在铜钱上约1.2秒，每次只掷一爻；成卦后可横滑对照两卦。</p>
+      <p class="gua-throw-status" id="guaThrowStatus" role="status" aria-live="polite"></p>
       <div class="actions" data-page-node-id="FpBytmE4qP4K7ctRDS2rg9">
-        <button class="primary-btn" id="guaToss" data-i18n="guaToss" data-page-node-id="TCHwgfJynuLtIiMLYBBFPn">摇卦</button>
+        <button class="primary-btn" id="guaStepToss" type="button">掷初爻</button>
+        <button class="ghost-btn" id="guaToss" data-i18n="guaToss" data-page-node-id="TCHwgfJynuLtIiMLYBBFPn">一次成卦</button>
         <button class="primary-btn" id="guaReveal" disabled data-i18n="guaReveal" data-page-node-id="Vat6WVLbdwyDo0he3uojeK">查看解读</button>
+        <button class="ghost-btn" id="guaReset" type="button" data-i18n="guaRestart">重新起卦</button>
       </div>
+      <section class="gua-insight" id="guaInsight" hidden>
+        <header><div><p class="gua-insight-kicker" data-i18n="guaTraceTitle">这一卦，怎样走到这里</p><h3 id="guaChangeSummary"></h3></div><span class="gua-view-switch" id="guaViewSwitch" role="group" aria-label="卦象视图"><button type="button" class="ghost-btn" data-gua-view="base" aria-pressed="true" data-i18n="lblBaseHex">本卦</button><button type="button" class="ghost-btn" data-gua-view="change" aria-pressed="false" data-i18n="guaAfter">变化后</button></span></header>
+        <div class="gua-compare" id="guaCompare"></div>
+        <p class="gua-line-detail" id="guaLineDetail" role="status"></p>
+        <details class="gua-cast-log"><summary data-i18n="guaLogTitle">回看六次掷币</summary><ol id="guaCastLog"></ol><p data-i18n="guaCoinRule">每币记2或3点，三币相加得6、7、8、9；6与9为动爻。自下而上记录，回看不会重抽。</p></details>
+      </section>
     </section>
 
     <!-- ============ 灵数 ============ -->
@@ -223,7 +279,7 @@
       </div>
       <p class="hint" data-i18n="hintNumber" data-page-node-id="EtpRzksiasfxO12wMmUH2p">写下一段数字（生日、任意 1–9 位皆可），点「生成」，星尘会为你凝出一枚数之印记。</p>
       <div class="ask-row">
-        <input class="ask-input" maxlength="60" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
+        <input class="ask-input" maxlength="300" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
         <button class="ask-random" type="button" data-ask-random data-i18n="askRandom" data-i18n-aria="askRandomAria" aria-label="随缘换一个问题">随缘一问</button>
       </div>
       <div class="ask-chips" data-ask-chips></div>
@@ -255,7 +311,7 @@
       </div>
       <p class="hint" id="mansionHint" data-i18n="hintMansion" data-page-node-id="MansionHint">转动星环，让目标宿停在顶部「取宿口」，或点「摇星」随机点亮一宿。</p>
       <div class="ask-row">
-        <input class="ask-input" maxlength="60" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
+        <input class="ask-input" maxlength="300" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
         <button class="ask-random" type="button" data-ask-random data-i18n="askRandom" data-i18n-aria="askRandomAria" aria-label="随缘换一个问题">随缘一问</button>
       </div>
       <div class="ask-chips" data-ask-chips></div>
@@ -271,6 +327,7 @@
         <div class="dial-selector" id="mansionSelector" data-page-node-id="MansionSelector"><span data-i18n="mansionSel">取宿口</span></div>
       </div>
       <div class="mansion-caption" id="mansionCaption"></div>
+      <p class="realm-gesture-hint" id="mansionGestureHint">张掌左右拨动星环；停稳后捏合中央星宿确认。</p>
       <div class="actions" data-page-node-id="MansionActions">
         <button class="primary-btn" id="mansionSpin" data-i18n="mansionSpin" data-page-node-id="MansionSpin">摇星</button>
         <button class="primary-btn" id="mansionPick" disabled data-i18n="mansionPick" data-page-node-id="MansionPick">取宿指引</button>
@@ -283,18 +340,21 @@
         <button class="back-btn" data-go="home" data-i18n="backBtn" data-page-node-id="RuneBack">‹ 返回</button>
         <h2 class="panel-title" data-i18n="titleRune" data-page-node-id="RuneTitle">北欧符文 · 远古之语</h2>
       </div>
-      <p class="hint" id="runeHint" data-i18n="hintRune" data-page-node-id="RuneHint">点击「掷符」，聆听三枚远古符文的讯息。</p>
+      <p class="hint" id="runeHint" data-page-node-id="RuneHint">浏览符石，逐枚放入三个阵位；也可随机补满。</p>
       <div class="ask-row">
-        <input class="ask-input" maxlength="60" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
+        <input class="ask-input" maxlength="300" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
         <button class="ask-random" type="button" data-ask-random data-i18n="askRandom" data-i18n-aria="askRandomAria" aria-label="随缘换一个问题">随缘一问</button>
       </div>
       <div class="ask-chips" data-ask-chips></div>
+      <section class="rune-pool" id="runePool" aria-label="浏览符石"><div class="rune-pool-track" id="runePoolTrack"></div></section>
+      <div class="realm-controls"><p id="runeGestureHint">张掌横滑浏览；捏起符石，放入下方阵位。也可点击选取。</p><button type="button" class="ghost-btn" id="runeNext">下一枚 ›</button></div>
       <div class="rune-tray" data-page-node-id="RuneTray">
         <div class="rune-row" id="runeRow" data-page-node-id="RuneRow"></div>
       </div>
       <div class="actions" data-page-node-id="RuneActions">
-        <button class="primary-btn" id="runeCast" data-i18n="runeCast" data-page-node-id="RuneCast">掷符</button>
+        <button class="ghost-btn" id="runeCast" data-i18n="runeCast" data-page-node-id="RuneCast">掷符</button>
         <button class="primary-btn" id="runeReveal" disabled data-i18n="runeReveal" data-page-node-id="RuneReveal">查看解读</button>
+        <button type="button" class="ghost-btn" id="runeReset">重新选符</button>
       </div>
     </section>
 
@@ -306,7 +366,7 @@
       </div>
       <p class="hint" id="oracleHint" data-i18n="hintOracle" data-page-node-id="OracleHint">点击「求签」，静心摇筒，得一签之示。</p>
       <div class="ask-row">
-        <input class="ask-input" maxlength="60" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
+        <input class="ask-input" maxlength="300" data-i18n-ph="askPh" placeholder="（可选）此刻你想问什么？写下你的问题或心愿…" aria-label="你的问题" />
         <button class="ask-random" type="button" data-ask-random data-i18n="askRandom" data-i18n-aria="askRandomAria" aria-label="随缘换一个问题">随缘一问</button>
       </div>
       <div class="ask-chips" data-ask-chips></div>
@@ -328,7 +388,11 @@
           <span class="stick-level" id="oracleLevel"></span>
         </div>
       </div>
+      <p class="realm-gesture-hint" id="oracleGestureHint">张掌横摆让签筒轻摇；停稳后确认出签，已出的签不会随滑动改变。</p>
+      <button type="button" class="ghost-btn" id="oracleGestureConfirm" disabled>确认出签</button>
       <div class="oracle-caption" id="oracleCaption"></div>
+      <button type="button" class="ghost-btn" id="oracleUnfold" hidden>展开签笺</button>
+      <div class="oracle-verse" id="oracleVerse" hidden></div>
       <div class="actions" data-page-node-id="OracleActions">
         <button class="primary-btn" id="oracleDraw" data-i18n="oracleDraw" data-page-node-id="OracleDraw">求签</button>
         <button class="primary-btn" id="oracleReveal" disabled data-i18n="oracleReveal" data-page-node-id="OracleReveal">看签诗</button>
@@ -366,20 +430,18 @@
         </div>
       </div>
       <div class="vortex" id="vortex" data-page-node-id="WMoE4ZHRwRDvJMkkSSm1DY"><span data-page-node-id="Fnyyr1I3eFrAjBygNiFkEh"></span><span data-page-node-id="ocxEU3RV9QZKnLI4nT8FeE"></span><span data-page-node-id="Fej8FWrcOUA88TLTEgiIZc"></span></div>
+      <div class="reading-recovery" id="readingRecovery" hidden>
+        <p id="readingRecoveryText" role="status"></p>
+        <button class="ghost-btn" id="readingRetry" data-i18n="uxRetry">保留取象，重新生成</button>
+      </div>
       <div class="reading-wrap" data-page-node-id="readingWrap">
         <div class="reading-rail" id="readingRail">
-          <aside class="reading-stage" id="readingStage" aria-hidden="true" data-page-node-id="readingStage"></aside>
+          <div class="reading-art" id="readingArt"><aside class="reading-stage" id="readingStage" aria-hidden="true" data-page-node-id="readingStage"></aside></div>
           <div class="reading-rail-q" id="readingRailQ" hidden>
             <span class="rq-tag" id="readingRailQTag"></span>
             <p class="rq-text" id="readingRailQText"></p>
           </div>
           <nav class="reading-outline" id="readingOutline" aria-label="解读目录" hidden></nav>
-          <div class="reading-tools" id="readingTools" hidden data-page-node-id="readingTools">
-            <button class="ghost-btn" id="readingSpeak" data-i18n="readingSpeak" data-page-node-id="readingSpeak">🔊 朗读</button>
-            <button class="ghost-btn" id="readingExport" data-i18n="readingExport" data-page-node-id="readingExport">⤓ 导出星图</button>
-            <button class="ghost-btn" id="readingShare" data-i18n="readingShare" data-page-node-id="readingShare">❋ 分享链接</button>
-            <button class="ghost-btn" id="readingExit" data-go="home" data-i18n="readingExit" data-page-node-id="readingExit">✕ 退出</button>
-          </div>
         </div>
         <div class="reading" id="readingBody" data-page-node-id="BZlxxWExyqoMv6wNpGb4nk"></div>
       </div>
@@ -391,8 +453,11 @@
   <div id="camWrap" class="cam-wrap" hidden data-page-node-id="camWrap">
     <video id="camVideo" playsinline muted data-page-node-id="camVideo"></video>
     <button id="camClose" class="ghost-btn cam-close" data-i18n="camClose" data-page-node-id="camClose">关闭</button>
+    <button type="button" class="cam-minimize ghost-btn" id="camMinimize" aria-expanded="true">收起画面</button>
     <div class="cam-status" data-i18n="camStatus" data-page-node-id="camStatus">画面只在本地处理，不上传</div>
     <div class="cam-gesture" id="camGesture" data-page-node-id="camG">手势：检测中…</div>
+    <label class="cam-mode"><span id="cameraModeLabel">手势模式</span><select id="cameraMode"><option value="hover">张掌悬停</option><option value="pinch">指尖仪式 · 捏合抓取</option></select></label>
+    <button type="button" id="gesturePractice" class="ghost-btn cam-practice">练习捏合 · 不抽牌</button>
     <ul class="cam-guide" id="camGuide">
       <li><b>🖐</b><span data-i18n="cgOpen">张开手掌 · 移动光标，停住即选中</span></li>
     </ul>
@@ -406,7 +471,7 @@
   <button class="reveal-skip ghost-btn" id="revealSkip" hidden data-i18n="skipReveal" data-page-node-id="revealSkip">跳过</button>
 
   <!-- 分享链接弹窗：链接自包含整份解读，无需服务器 -->
-  <div class="share-modal" id="shareModal" hidden data-page-node-id="shareModal">
+  <dialog class="share-modal" id="shareModal" hidden data-page-node-id="shareModal">
     <div class="share-card" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
       <div class="share-title" id="shareTitle" data-i18n="shareTitle">分享这份星图</div>
       <p class="share-hint" id="shareHint" data-i18n="shareHint">链接内已包含完整解读内容，对方打开即可直接查看，无需服务器。</p>
@@ -415,18 +480,78 @@
         <input class="share-input" id="shareBaseInput" data-i18n-ph="shareBasePh" placeholder="https://用户名.github.io/HW05/" spellcheck="false" autocomplete="off" />
         <p class="share-note" data-i18n="shareBaseNote">部署后会自动使用当前站点地址；本地预览先填这里，生成的链接部署后即可打开。</p>
       </div>
+      <label class="share-option"><input id="shareIncludeQuestion" type="checkbox" /> <span data-i18n="uxShareQuestion">包含我的原问题（默认不分享）</span></label>
+      <p class="share-preview" id="sharePreview" role="status"></p>
       <input class="share-input" id="shareInput" readonly data-page-node-id="shareInput" />
       <div class="share-actions">
         <button class="ghost-btn" id="shareCopy" data-i18n="shareCopy">复制链接</button>
         <button class="ghost-btn" id="shareClose" data-i18n="shareClose">关闭</button>
       </div>
     </div>
-  </div>
+  </dialog>
+
+  <section class="audio-player" id="audioPlayer" aria-label="解读播放器" hidden>
+    <div class="audio-heading">
+      <div class="oracle-identity"><span class="oracle-orb" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div><b class="oracle-name" data-i18n="uxOracle">神谕</b><b class="oracle-state" data-audio="status" role="status"></b></div></div>
+    </div>
+    <div class="audio-controls">
+      <div class="audio-transport">
+        <button class="ghost-btn audio-icon-button" data-audio="prev" aria-label="上一章" title="上一章"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14M18 6l-9 6 9 6z"/></svg></button>
+        <button class="primary-btn" id="readingSpeak" data-audio="toggle"><svg class="audio-play-icon" viewBox="0 0 24 24" aria-hidden="true"><path class="play-shape" d="M8 5l11 7-11 7z"/><path class="pause-shape" d="M8 5v14M16 5v14"/></svg><span data-audio="toggle-label">听全部</span></button>
+        <button class="ghost-btn audio-icon-button" data-audio="next" aria-label="下一章" title="下一章"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14M6 6l9 6-9 6z"/></svg></button>
+      </div>
+      <div class="audio-track">
+        <select data-audio="chapter" aria-label="选择朗读章节"></select>
+        <div class="audio-progress"><input type="range" data-audio="seek" min="0" max="1" step="0.1" value="0" disabled aria-label="本段播放进度" /><span data-audio="time">— / —</span></div>
+      </div>
+      <button class="ghost-btn audio-icon-button audio-settings-toggle" data-audio="settings" aria-label="音色与听读设置" title="音色与听读设置" aria-expanded="false" aria-controls="audioOptions"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h5m5 0h6M4 17h10m5 0h1M11.5 4v6M16.5 14v6"/></svg></button>
+    </div>
+    <div class="audio-options" id="audioOptions" hidden>
+      <label class="audio-language"><span data-audio-label="language">原文语种</span><select data-audio="language" aria-label="原文语种"><option value="">自动识别</option><option value="zh">中文</option><option value="en">English</option><option value="ja">日本語 · 试用</option><option value="ko">한국어 · 试用</option><option value="fr">Français · 试用</option><option value="es">Español · 试用</option></select></label>
+      <label class="audio-voice"><span data-audio-label="voice">神谕音色</span><select data-audio="voice" aria-label="神谕音色"><option value="">默认音色</option></select></label>
+      <label class="audio-scope"><span data-audio-label="scope">聆听范围</span><select data-audio="scope" aria-label="聆听范围"><option value="all">听全部</option><option value="single">仅当前章</option></select></label>
+      <label class="audio-volume"><span data-i18n="uxBgmVolume">背景音乐</span><input type="range" min="1" max="100" step="1" value="60" data-bgm-volume aria-label="背景音乐音量" data-i18n-aria="uxBgmVolume"><output data-bgm-value>60%</output></label>
+      <label><span data-i18n="uxSpeed">朗读速度</span><select data-audio="rate" aria-label="朗读速度"><option value="0.85">0.85×</option><option value="1" selected>1×</option><option value="1.15">1.15×</option><option value="1.3">1.3×</option></select></label>
+      <button class="ghost-btn" data-audio="follow" aria-pressed="true">跟随文字：开</button>
+      <span data-audio="source" role="status"></span>
+    </div>
+    <nav class="reading-tools" id="readingTools" hidden aria-label="解读操作">
+      <button class="ghost-btn" id="readingSave" data-i18n="uxSave">保存到我的记录</button>
+      <button class="ghost-btn audio-icon-button dock-more-toggle" data-audio="more" aria-label="更多操作" title="更多操作" aria-expanded="false" aria-controls="readingMore"><span class="dock-more-label">更多操作</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button>
+      <div class="dock-extra" id="readingMore">
+        <button class="ghost-btn" id="readingBack" data-i18n="uxBackResult">返回取象</button>
+        <button class="ghost-btn" id="readingExport" data-i18n="readingExport">⤓ 导出星图</button>
+        <button class="ghost-btn" id="readingShare" data-i18n="readingShare">❋ 分享链接</button>
+        <button class="ghost-btn" id="readingExit" data-go="home" data-i18n="readingExit">✕ 退出</button>
+      </div>
+    </nav>
+  </section>
+  <dialog class="experience-dialog" id="experienceDialog" aria-labelledby="experienceTitle">
+    <header><h2 id="experienceTitle"></h2><button class="ghost-btn" id="closeExperience" data-i18n="uxClose">关闭</button></header>
+    <div id="experienceContent"></div>
+  </dialog>
+  <div class="experience-toast" id="experienceToast" role="status" hidden></div>
 
   <!-- Three.js 全局版（本地内置，避免 CDN 不可用时阻塞页面脚本） -->
   <script src="vendor/three.min.js"></script>
-  <!-- MediaPipe Hands：真实手势（手掌移动光标 / 停住选中）。本地内置，离线可用；加载失败明确提示 -->
+  <!-- MediaPipe Hands：张掌悬停或可选指尖捏合抓取。本地内置，离线可用；加载失败明确提示 -->
   <script async src="vendor/mediapipe/hands.js"></script>
-  <script src="app.js?v=20261027z14"></script>
+  <script src="locales-data.js?v=20261107locale6"></script>
+  <script src="locales-zh.js?v=20261107locale6"></script>
+  <script src="locale.js?v=20261107locale6"></script>
+  <script src="reading-languages.js?v=20261107locale6"></script>
+  <script src="palm-deck.js?v=20261107locale6"></script>
+  <script src="pinch-core.js?v=20261107locale6"></script>
+  <script src="tarot-spreads.js?v=20261107locale6"></script>
+  <script src="speech-language.js?v=20261107locale6"></script>
+  <script src="text-format.js?v=20261107locale6"></script>
+  <script src="module-profiles.js?v=20261107locale6"></script>
+  <script src="result-trace.js?v=20261107locale6"></script>
+  <script src="audio-player.js?v=20261107locale6"></script>
+  <script src="workbench-scenes.js?v=20261107locale6"></script>
+  <script src="reading-workbench.js?v=20261107locale6"></script>
+  <script src="experience.js?v=20261107locale6"></script>
+  <script src="gua-core.js?v=20261107locale6"></script>
+  <script src="app.js?v=20261107locale6"></script>
 </body>
 </html>

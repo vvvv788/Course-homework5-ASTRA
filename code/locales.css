@@ -1,0 +1,5 @@
+.locale-select{max-width:128px;min-width:100px;font:inherit;color:var(--text-1);cursor:pointer}.locale-select option{background:var(--bg-1);color:var(--text-1)}
+.reading-language-control{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;width:min(760px,100%);margin:12px auto 18px;color:var(--text-2);font-size:14px;box-sizing:border-box}
+.reading-language-control label{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.reading-language-control select{max-width:240px;min-width:120px;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg-1);color:var(--text-1);font:inherit}.reading-language-control p{width:100%;margin:0;line-height:1.7;color:var(--accent)}.reading-language-control p[hidden]{display:none}
+html[lang=ja],html[lang=ko]{font-family:'Noto Serif CJK JP','Noto Serif CJK KR','Yu Mincho','Hiragino Mincho ProN','AppleMyungjo',serif}
+@media(max-width:600px){.reading-language-control{font-size:13px;gap:12px}.reading-language-control button{white-space:normal;max-width:100%}.locale-select{max-width:90px}}

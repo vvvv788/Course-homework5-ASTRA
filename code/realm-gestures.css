@@ -1,0 +1,30 @@
+/* Camera rituals keep their native mouse, touch and keyboard controls. */
+.realm-gesture-hint{flex:0 0 auto;width:min(720px,100%);margin:16px auto;color:var(--text-2);font-size:14px;line-height:1.9;text-align:center}
+.realm-controls{flex:0 0 auto;display:flex;gap:18px;align-items:center;justify-content:center;width:min(720px,100%);margin:12px auto 24px}
+.realm-controls p{margin:0;color:var(--text-2);font-size:14px;line-height:1.8}.realm-controls button{flex-shrink:0}
+.rune-pool{flex:0 0 auto;width:min(720px,100%);overflow:hidden;height:218px;padding:10px 0;box-sizing:border-box;touch-action:pan-y;mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+.rune-pool-track{display:flex;gap:16px;will-change:transform;transition:transform .16s ease-out}
+.palm-sweeping .rune-pool-track{transition:none}
+.rune-candidate{position:relative;flex:0 0 120px;width:120px;height:194px;padding:0;overflow:hidden;border:1px solid var(--line);border-radius:26px 22px 32px 20px;background:var(--bg-1);color:var(--text-1);cursor:pointer;opacity:.55;transform:scale(.92);transition:opacity .16s,transform .16s,border-color .16s;font:inherit}
+.rune-candidate img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.8;pointer-events:none}.rune-candidate-glyph{position:absolute;left:0;right:0;top:16px;font-size:44px;font-weight:400;text-shadow:0 2px 12px #000}.rune-candidate-name{position:absolute;bottom:12px;left:5px;right:5px;font-size:14px;text-shadow:0 2px 8px #000}
+.rune-candidate.is-focused{opacity:1;transform:scale(1);border-color:var(--accent);box-shadow:0 0 18px rgba(var(--accent-rgb),.25)}.rune-candidate.is-used{opacity:.25;filter:grayscale(.8)}
+.rune-slot{padding:0;font:inherit;cursor:pointer}.rune-slot:disabled:not(.filled){opacity:.5;cursor:default}.rune-slot:not(:disabled){border-color:var(--accent)}
+.rune-tray.is-gesture-holding{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9000;width:166px;padding:12px 12px 36px;background:var(--bg-1);border:2px solid var(--accent)}
+.rune-tray.is-gesture-holding .rune-row{min-height:180px}.rune-tray.is-gesture-holding .rune-slot{display:none}.rune-tray.is-gesture-holding .rune-slot:not(:disabled){display:flex;width:130px;height:178px}.rune-tray.is-gesture-holding .rune-row::before{display:none}
+.rune-draw-ghost{height:145px;width:94px;overflow:hidden;background:var(--bg-1)}.rune-draw-ghost img{width:100%;height:100%;object-fit:cover}.rune-draw-ghost b{position:absolute;top:8px;left:0;right:0;font-size:36px;text-align:center;color:var(--text-1);text-shadow:0 2px 10px #000}
+.mansion-stage.palm-sweeping .mansion-ring,.mansion-stage.palm-sweeping .lbl{transition:none!important}.gesture-preview{outline:2px solid var(--accent);outline-offset:5px}
+button.gua-coins{padding:0;border:0;background:none;cursor:pointer;overflow:visible;box-shadow:0 0 calc(var(--gesture-charge,0)*30px) rgba(var(--accent-rgb),.5);border-radius:50%}button.gua-coins:disabled{cursor:default}.gua-coins.gesture-charging .coin{filter:brightness(calc(1 + var(--gesture-charge,0)*.6))}
+#oracleGestureConfirm{flex:0 0 auto;margin:0 0 12px}#oracleUnfold{flex:0 0 auto;margin:12px 0}.oracle-cup{transition:rotate .12s ease-out}.oracle-cup.gesture-ready{filter:drop-shadow(0 0 16px rgba(var(--accent-rgb),.5))}.oracle-stick{touch-action:none}
+.oracle-verse{flex:0 0 auto;width:min(520px,100%);box-sizing:border-box;margin:12px auto 24px;padding:24px;border:1px solid var(--line);border-radius:18px;background:var(--bg-1);color:var(--text-1);text-align:center;font-size:18px;line-height:2}
+.oracle-verse[hidden]{display:none}.realm-preview-label{margin:14px 0 0;color:var(--accent);font-size:14px;line-height:1.8;text-align:center}
+@media(max-width:600px){.rune-pool{height:180px}.rune-candidate{flex-basis:96px;width:96px;height:160px}.rune-candidate-glyph{font-size:36px}.realm-controls{gap:12px}.realm-controls p,.realm-gesture-hint{font-size:13px}.oracle-verse{font-size:16px;padding:18px}}
+@media(prefers-reduced-motion:reduce){.rune-pool-track,.rune-candidate,.oracle-cup{transition:none}}
+button.gua-coins{pointer-events:auto!important;z-index:4}button.gua-coins:focus-visible{outline:2px solid var(--accent);outline-offset:8px}
+.mansion-center[role=button]{cursor:pointer;pointer-events:auto}.mansion-center[role=button]:focus-visible{outline:2px solid var(--accent);outline-offset:6px}
+.gua-insight.palm-sweeping .gua-compare-board{box-shadow:0 0 22px rgba(var(--accent-rgb),.15)}
+.oracle-stick.show{pointer-events:auto;cursor:grab}.oracle-stick.show:active{cursor:grabbing}.oracle-stick[role=button]:focus-visible{outline:2px solid var(--accent);outline-offset:7px}
+.rune-pool[hidden],.realm-controls[hidden]{display:none}
+.orbit-wheel.palm-sweeping .orbit-handle{transition:none}
+.gua-insight.palm-sweeping [data-gua-board=base]{opacity:calc(1 - var(--gesture-view,0)*.55)}
+.gua-insight.palm-sweeping [data-gua-board=change]{opacity:calc(.45 + var(--gesture-view,0)*.55)}
+#runeCast{max-width:100%;white-space:normal}

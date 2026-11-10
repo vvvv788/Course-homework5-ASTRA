@@ -1,0 +1,7 @@
+.git
+.env
+**/.env
+**/*.log
+node_modules
+work
+资料归档

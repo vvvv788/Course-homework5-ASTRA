@@ -5,6 +5,7 @@
 
 # ---------- 依赖与本地临时产物 ----------
 node_modules/
+.local-share/
 .workbuddy/
 npm-debug.log*
 
@@ -17,3 +18,6 @@ desktop.ini
 # ---------- 原始素材（体积大，运行演示时不需要，代码里无引用） ----------
 _assets_src/
 vibe_images/
+
+# 本地验证截图与中间产物
+work/

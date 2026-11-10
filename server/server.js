@@ -105,6 +105,16 @@ function sendJson(res, code, obj) {
   res.end(body);
 }
 function readBody(req) {
+  // Vercel may parse JSON before invoking the handler; local Node uses the raw stream.
+  if (req.body !== undefined) {
+    try {
+      const raw = Buffer.isBuffer(req.body) ? req.body.toString("utf8") : req.body;
+      if (Buffer.byteLength(typeof raw === "string" ? raw : JSON.stringify(raw)) > 1e6) throw new Error("body too large");
+      const body = typeof raw === "string" ? JSON.parse(raw) : raw;
+      if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("invalid json body");
+      return Promise.resolve(body);
+    } catch (error) { return Promise.reject(new Error(error.message === "body too large" ? error.message : "invalid json body")); }
+  }
   return new Promise((resolve, reject) => {
     let size = 0; const chunks = [];
     req.on("data", c => { size += c.length; if (size > 1e6) { reject(new Error("body too large")); req.destroy(); } else chunks.push(c); });

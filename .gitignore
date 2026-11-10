@@ -21,3 +21,7 @@ vibe_images/
 
 # 本地验证截图与中间产物
 work/
+
+# Vercel build output and local project settings
+public/
+.vercel/

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>ASTRA · 服务监控</title>
+  <style>
+    :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#090b14;color:#e8e7f2;font:15px/1.8 "Cormorant Garamond","Noto Serif SC","Source Han Serif SC","Songti SC",Georgia,serif}main{max-width:980px;margin:64px auto;padding:0 24px}a{color:#c5b7ff}h1{font-size:30px;font-weight:500}p,small{color:#aaa6bb}form{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}input,button{font:inherit;color:inherit;background:#171827;border:1px solid #484056;border-radius:10px;padding:10px 14px}input{flex:1;min-width:180px}button{cursor:pointer}button:disabled{opacity:.5;cursor:wait}#status{min-height:28px;color:#c9baff}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:#121420;border:1px solid #343047;border-radius:14px;padding:18px}.card b{display:block;font-size:27px;font-weight:500;margin-top:8px}table{width:100%;border-collapse:collapse;margin-top:24px}th,td{text-align:left;padding:12px;border-bottom:1px solid #343047}th{color:#b0a8c5;font-weight:400}#results[hidden]{display:none}#token:focus,button:focus-visible{outline:2px solid #b8a1ff;outline-offset:3px}@media(max-width:600px){main{margin-top:24px;padding:0 16px}.cards{grid-template-columns:1fr}table{font-size:12px}th,td{padding:10px 5px}}
+  </style>
+</head>
+<body>
+  <main>
+    <a href="./">← 返回 ASTRA</a>
+    <h1>服务监控</h1>
+    <p>只展示当前服务进程的请求数、失败数与耗时，不包含用户问题或解读正文。令牌仅用于本次请求，不保存到浏览器。</p>
+    <form id="statusForm">
+      <label for="token">管理令牌</label>
+      <input id="token" type="password" autocomplete="off" required placeholder="服务端配置的 ADMIN_TOKEN">
+      <button type="submit">读取状态</button>
+    </form>
+    <div id="status" role="status"></div>
+    <section id="results" hidden>
+      <div class="cards"><div class="card">服务配置<b id="configured"></b></div><div class="card">正在处理的 AI 请求<b id="active"></b></div><div class="card">今日模型调用次数（UTC）<b id="budget"></b></div></div>
+      <table><thead><tr><th>接口</th><th>请求</th><th>失败</th><th>平均响应时间</th></tr></thead><tbody id="routes"></tbody></table>
+      <p id="started"></p>
+      <small>进程重启后统计与额度计数重置；多实例部署需要另接共享存储。调用次数不等于实际账单金额。</small>
+    </section>
+  </main>
+  <script src="ops.js?v=20261102p0"></script>
+</body>
+</html>

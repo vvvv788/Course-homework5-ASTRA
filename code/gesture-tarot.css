@@ -1,0 +1,59 @@
+/* Spread controls and explicit card destinations. Existing artwork stays intact. */
+.tarot-spread-controls{width:min(100%,720px);margin:24px auto;display:grid;grid-template-columns:1fr;gap:12px 20px;align-items:center}
+.tarot-spread-controls select{width:100%;min-width:0;padding:12px 16px;border:1px solid var(--line);border-radius:14px;background:var(--bg-1);color:var(--text-1);font:inherit}
+#tarotSpreadFocus{grid-column:1/-1;margin:4px 0;color:var(--text-2);font-size:15px;line-height:1.8}
+.tarot-choice-inputs{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.tarot-choice-inputs[hidden]{display:none}
+.tarot-choice-inputs label{display:grid;gap:8px;color:var(--text-2)}
+.tarot-choice-inputs input{min-width:0;width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg-1);color:var(--text-1);font:inherit}
+.spread-confirm{display:flex;flex-wrap:wrap;gap:16px;margin-top:24px}
+#tarotSlots{display:grid;grid-template-columns:repeat(3,minmax(0,136px));gap:20px;min-height:0;padding-bottom:12px}
+#tarotSlots::before{display:none}
+#tarotSlots[data-count="1"]{grid-template-columns:minmax(0,136px)}
+#tarotSlots[data-count="5"]{grid-template-columns:repeat(5,minmax(0,116px));gap:16px}
+#tarotSlots .tarot-card,#tarotSlots .tarot-drop-target{width:100%;height:auto;aspect-ratio:136/207;min-width:0;box-sizing:border-box}
+.tarot-drop-target{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;padding:12px 8px;border-radius:14px;border:1px dashed var(--accent);background:rgba(var(--accent-rgb),.06);white-space:normal;text-align:center}
+.tarot-drop-target b{font-size:16px;line-height:1.5;font-weight:400}.tarot-drop-target small,.tarot-drop-target span{font-size:12px;color:var(--text-2)}
+.tarot-drop-target:disabled{opacity:.45;border-color:var(--line)}
+#tarotSlots .face-meta .pos{white-space:normal;font-size:12px;padding:0 5px;box-sizing:border-box}
+.reading-rail .st-pos{white-space:normal;text-align:center}
+.cam-mode{display:grid;gap:6px;padding:10px;font-size:12px;color:var(--text-2)}
+.cam-mode select{width:100%;min-width:0;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg-1);color:var(--text-1);font:inherit}
+.cam-guide li{opacity:1}
+.pinch-ghost{position:fixed;z-index:10000;pointer-events:none;width:84px;height:128px;object-fit:cover;border:1px solid var(--accent);border-radius:10px;box-shadow:0 0 30px rgba(var(--accent-rgb),.4);transform:translate(-50%,-65%) rotate(-5deg)}
+.pinch-target{outline:2px solid var(--accent)!important;outline-offset:5px;box-shadow:0 0 26px rgba(var(--accent-rgb),.3)!important}
+.pinch-source{filter:brightness(.65)}
+@media(max-width:600px){.tarot-spread-controls{grid-template-columns:1fr;margin:20px auto;gap:10px}.tarot-choice-inputs{gap:12px}#tarotSlots{grid-template-columns:repeat(3,minmax(0,104px));gap:12px}#tarotSlots[data-count="5"]{grid-template-columns:repeat(3,minmax(0,104px));gap:12px}#tarotSlots[data-count="5"]>[data-tarot-slot="3"]{grid-column:1}#tarotSlots[data-count="5"]>[data-tarot-slot="4"]{grid-column:3}.tarot-drop-target{gap:8px}.tarot-drop-target b{font-size:14px}.tarot-drop-target span{font-size:10px}.tarot-choice-inputs input{font-size:14px}.cam-mode{padding:6px 8px}.cam-wrap{max-height:80vh;overflow:auto}}
+@media(prefers-reduced-motion:reduce){.pinch-ghost{transform:translate(-50%,-65%)}}
+
+.tarot-spread-controls>label{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:18px}
+.scene-tarot-spread[data-count="1"]{grid-template-columns:minmax(0,160px);justify-content:center}
+@media(max-width:600px){.tarot-spread-controls>label{grid-template-columns:1fr;gap:8px}}
+/* During a hold, bring the next destination into view rather than requiring camera scrolling. */
+#tarotSlots.is-gesture-holding{position:fixed;z-index:9000;bottom:26px;left:50%;transform:translateX(-50%);display:flex;justify-content:center;width:136px;padding:0;margin:0;filter:drop-shadow(0 0 36px rgba(var(--accent-rgb),.45))}
+#tarotSlots.is-gesture-holding>*{display:none}
+#tarotSlots.is-gesture-holding>.tarot-drop-target:not(:disabled){display:flex;width:136px;background:var(--bg-1);border-style:solid;border-width:2px}
+[data-screen="tarot"] .method-profile ul{display:flex;flex-wrap:wrap;gap:8px 18px;align-content:start}
+[data-screen="tarot"] .method-profile li{display:inline}
+#tarotSpreadFocus{display:none} /* Its full explanation is already in the method profile above. */
+.tarot-grip{margin:0 auto 24px;padding:10px 20px;font-size:14px;touch-action:none}
+.cam-minimize{position:absolute;top:8px;left:8px;padding:4px 8px!important;font-size:11px!important;background:rgba(0,0,0,.6);color:white}
+.cam-wrap.is-collapsed{padding-top:38px}.cam-wrap.is-collapsed video{display:none}
+.cam-practice{display:block;margin:0 10px 10px;padding:7px 10px;font-size:12px;max-width:calc(100% - 20px);white-space:normal}
+.gesture-practice-panel{position:fixed;z-index:9500;left:50%;top:50%;transform:translate(-50%,-50%);box-sizing:border-box;width:min(460px,calc(100vw - 32px));border:1px solid var(--accent);border-radius:24px;padding:24px;background:var(--bg-1);box-shadow:0 24px 100px rgba(0,0,0,.7);color:var(--text-1)}
+.gesture-practice-panel h3{margin:0 0 16px;font-size:24px}.gesture-practice-panel p{font-size:15px;line-height:1.8;min-height:54px}
+.practice-stage{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px 0}
+.practice-star{font-size:48px;width:90px;height:90px;padding:8px;color:var(--accent)}
+.practice-target{width:130px;height:130px;border:2px dashed var(--accent);border-radius:50%;display:grid;place-items:center;color:var(--text-2);font-size:15px}
+.practice-ghost{display:grid;place-items:center;font-size:56px;color:var(--accent);width:70px;height:70px;border:0;box-shadow:none}
+.rune-held{height:100px;display:grid;place-items:center;background:var(--bg-1);overflow:hidden}.rune-held .rune-touchstone{width:100%;height:100%}
+.rune-drop.pinch-altar-active{position:fixed;z-index:9000;left:50%;bottom:28px;transform:translateX(-50%);width:170px;height:170px;background:var(--bg-1);border:2px solid var(--accent);border-radius:50%}
+@media(max-width:600px){.practice-target{width:104px;height:104px}.gesture-practice-panel{padding:20px}}
+#tarotGrip{flex:0 0 auto;min-height:40px;line-height:1.6;height:auto;white-space:normal;max-width:calc(100% - 28px)}
+/* Palm browsing follows each rendered frame; stop uses the existing snap animation. */
+.tarot-dial-wrap.palm-sweeping .dial-card{transition:none}
+.tarot-dial-wrap.palm-sweeping .dial-selector::before{filter:drop-shadow(0 0 16px var(--accent))}
+.tarot-browse{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:18px;width:min(720px,100%);margin:0 auto 24px}
+#tarotSwipeHint{margin:0;color:var(--text-2);font-size:14px;line-height:1.8;text-align:center}
+.tarot-browse #tarotGrip{margin:0;min-width:96px;font-size:13px;flex-shrink:0}
+@media(max-width:600px){.tarot-browse{gap:12px;align-items:center}#tarotSwipeHint{font-size:13px;text-align:left}.tarot-browse #tarotGrip{padding:8px 12px;min-width:80px}}

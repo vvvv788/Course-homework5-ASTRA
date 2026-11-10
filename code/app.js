@@ -1,7 +1,6 @@
 /* ============================================================
-   占卜站 Demo · app.js
-   星尘粒子引擎 + 状态机 + 塔罗/六爻/灵数三模块 + 本地示例解读
-   注：解读为 MOCK 数据，接 StepFun 时只需把 mockReading 换成 /api/reading 调用
+   ASTRA · 六体系星尘问语
+   场景与取象状态机；产品旅程与听读分别见 experience.js / audio-player.js
    ============================================================ */
 (function () {
   "use strict";
@@ -18,7 +17,7 @@
   (function () {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Noto+Serif+SC:wght@400;500;600&display=swap";
+    link.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600&display=swap";
     document.head.appendChild(link);
   })();
 
@@ -30,11 +29,19 @@
   /* ---------------- 主题 ---------------- */
   const root = document.documentElement;
   const themeToggle = document.getElementById("themeToggle");
+  let themeUIReady = false, themeTicket = 0;
   function applyTheme(t) {
+    if (t !== "night" && t !== "day") return;
+    const ticket = ++themeTicket;
+    root.classList.add("theme-changing");
     root.setAttribute("data-theme", t);
+    root.style.colorScheme = t === "day" ? "light" : "dark";
     try { localStorage.setItem("theme", t); } catch (e) {}
     if (window.__particles) window.__particles.recolor();
-    recolorCards();
+    if (themeUIReady) recolorCards();
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (ticket === themeTicket) root.classList.remove("theme-changing");
+    }));
   }
   themeToggle && themeToggle.addEventListener("click", () => {
     applyTheme(root.getAttribute("data-theme") === "night" ? "day" : "night");
@@ -47,6 +54,7 @@
   /* ---------------- 多语言 i18n ---------------- */
   let lang = "zh";
   try { const l = localStorage.getItem("lang"); if (l === "en" || l === "zh") lang = l; } catch (e) {}
+  if(window.AstraLocale.get()!=="zh")lang=window.AstraLocale.get()==="en"?"en":"en";
   const I18N = {
     zh: {
       docTitle: "ASTRA · 占卜 Demo",
@@ -62,8 +70,9 @@
       heroSub: "星径尽头立着六扇门，每一扇后都藏着一套古老的问卜之法。",
       gateHint: "门扉将自行开启 · 亦可轻触门扉",
       idKicker: "第一步 · 择一旅人",
+      idGroup: "选择旅人身份", idEnter: "以此身份启程",
       idTitle: "你以何种身份走过星径？",
-      idSub: "身份会为你点亮一扇相应的门，并替你写下第一句问语。",
+      idSub: "选择一个贴近此刻的身份，带着你的问语继续。",
       idWanderer: "迷途旅人", idWandererLine: "问前路：学业、事业、下一步往哪走",
       idHeart: "心事之人", idHeartLine: "问情感：喜欢、牵挂、复合与告别",
       idChooser: "抉择之人", idChooserLine: "问两难：选甲或乙，开始或停下",
@@ -79,12 +88,12 @@
       startBtn: "开始占卜",
       demoNote: "在线演示模式：解读为内置示例文案。本机双击「启动演示.bat」即可接入 StepFun 大模型，按你的问题实时生成。",
       demoBanner: "演示模式 · 内置示例解读（本机运行「启动演示.bat」可实时生成）",
-      cardTarot: "塔罗", cardTarotDesc: "三星牌，照见过去·现在·未来",
-      cardGua: "六爻", cardGuaDesc: "三掷铜钱，自下成卦",
-      cardNumber: "灵数", cardNumberDesc: "以数问星，静待回响",
-      cardMansion: "二十八宿", cardMansionDesc: "一宿一兽，星野指路",
-      cardRune: "北欧符文", cardRuneDesc: "三枚符石，掷地听讯",
-      cardOracle: "寺观灵签", cardOracleDesc: "摇筒求签，诗示吉凶",
+      cardTarot: "塔罗", cardTarotDesc: "三张牌，梳理心境与选择",
+      cardGua: "六爻", cardGuaDesc: "逐爻成卦，比较条件与变化",
+      cardNumber: "灵数", cardNumberDesc: "十二印记，观察日常节律",
+      cardMansion: "二十八宿", cardMansionDesc: "一宿一兽，换个应对视角",
+      cardRune: "北欧符文", cardRuneDesc: "三枚符文，辨认力量与边界",
+      cardOracle: "寺观灵签", cardOracleDesc: "一首签诗，照看一件心事",
       backBtn: "‹ 返回",
       titleTarot: "塔罗 · 环星指引", titleGua: "六爻 · 起卦法阵",
       titleNumber: "灵数 · 数之回响", titleMansion: "二十八宿 · 星野指路",
@@ -104,16 +113,16 @@
       guaToss: "摇卦", guaReveal: "查看解读",
       numPh: "例如 19980918", numGen: "生成", numReveal: "查看解读",
       mansionSel: "取宿口", mansionSpin: "摇星", mansionPick: "取宿指引",
-      runeCast: "掷符", runeReveal: "查看解读",
+      runeCast: "随机补满", runeReveal: "查看解读",
       oracleDraw: "求签", oracleReveal: "看签诗",
       readingTitle: "解读", readingSpeak: "🔊 朗读", readingExport: "⤓ 导出星图", readingExit: "✕ 退出",
       camClose: "关闭", camStatus: "画面只在本地处理，不上传",
-      camGesturePrefix: "手势：", camNoHand: "未检测到手 · 抬手入镜", camHandOn: "✋ 手掌 · 停住即选中", camModelFail: "模型未加载 · 请改用鼠标",
+      camGesturePrefix: "手势：", camNoHand: "未检测到手 · 抬手入镜", camHandOn: "✋ 手掌 · 停稳 1.2 秒确认", camModelFail: "模型未加载 · 请改用鼠标",
       camNeedOpen: "✋ 请张开手掌 · 掌心即光标",
       camDetecting: "检测中…", camNoResult: "手势模型无响应 · 请刷新页面或改用鼠标", camHit: "✓ 已选中 · {{0}}",
       camNeedHttp: "隔空手势的手势模型无法从 file:// 加载（浏览器禁止读取本地模型文件）。\n\n解决：双击 HW05 目录里的「启动演示.bat」，它会自动打开 http://localhost:8787\n也可手动在地址栏输入 http://localhost:8787\n\n其余功能（六门取象、AI 解读）在当前页面照常可用。",
       camLoading: "模型加载中… 已等 {{0}}s", camNoVideo: "摄像头无画面 · 可能被其他软件占用", camSendFail: "手势模型运行失败 · 请改用鼠标",
-      cgOpen: "张开手掌 · 移动光标，停住即选中",
+      cgOpen: "张开手掌移动光标 · 停稳约 1.2 秒确认",
       skipReveal: "跳过揭晓",
       stageTarot: "牌 阵", stageGua: "卦 象", stageNumber: "灵 数", stageMansion: "星 宿", stageRune: "符 文", stageOracle: "签",
       tarotHintIdle: "左右拖动卡组，正中间的大图即当前牌；点击它或顶部「选牌口」取牌。",
@@ -129,7 +138,7 @@
       numRandom: "✦ 随机",
       numGuide: "不想自己输入？点「随机」，让星尘替你选一个数字",
       numRevealTip: "印记已现 · 点下方展开完整星语",
-      numSum: "数之和 {{0}}", numRoot: "取象 {{0}}",
+      numSum: "数之和 {{0}}", numRoot: "印记 {{0}}",
       guaIdle: "静候六爻",
       triUpper: "上卦", triLower: "下卦",
       mansionKicker: "本宿",
@@ -149,7 +158,7 @@
       lblYouAsk: "你问 · ", lblYouAskSpeech: "你问：",
       lblSynthesis: "综合", lblActions: "可执行建议",
       roOverview: "总览", roActions: "建议",
-      disclaimer: "以上为在线演示的内置示例解读。本机运行「启动演示.bat」后，同样的结构会由 StepFun 大模型按你的问题实时生成。",
+      disclaimer: "本页为内置示例，未针对你的问题生成；仅供象征探索，不代表事实预测。",
       rdTarot: "塔罗解读", rdGua: "六爻解读", rdNumber: "灵数解读", rdMansion: "二十八宿解读", rdRune: "北欧符文解读", rdOracle: "寺观灵签解读",
       expBrand: "ASTRA 占卜", expFooter: "在线演示 · 内置示例解读 · ",
       expSynthesis: "综合", expActions: "可执行建议",
@@ -184,7 +193,7 @@
       rlWaitHint: "通常需要 15–30 秒，可以先把问题在心里过一遍。",
       ldTarot: "三张牌分别对应过去、现在与未来。解读会结合牌位、正逆位与牌面象征，梳理这件事的来路、当下与可能走向。",
       ldGua: "六爻以本卦看当下处境，以变卦看趋势。解读会落在卦象、动爻与五行关系上，判断此刻宜进还是宜守。",
-      ldNumber: "灵数从这组数字的和、根数与重复节奏中取象，读出你此刻的能量倾向，以及可以落地的行动方向。",
+      ldNumber: "本站数字取象使用十二枚自定义印记。解读会借印记意象整理问题，并给出可尝试的下一步。",
       ldMansion: "二十八宿以所取星宿与四象归属为线索。解读会结合值宿意象与星野方位，照见当下的人事与时机。",
       ldRune: "三枚符石各有立场与时间意味。解读会结合符文含义与落位，给出此刻最值得留意的一条提示。",
       ldOracle: "灵签以签等与签诗为纲。解读会拆解诗中的意象与典故，判断所问之事的吉凶倾向与应对方式。",
@@ -193,9 +202,9 @@
       ttsFail: "语音合成失败，已改用浏览器朗读。",
       expFooterLive: "StepFun 实时生成 · 仅供灵感 · ",
       tarotTone: "牌面已经给出线索。",
-      tarotUp: "{{0}}正位落在「{{1}}」，关键词是{{2}}。它说明这段处境的主动权在你手上：阻碍更多来自节奏没排好，而不是外部条件不够。把下周要完成的事缩到一个具体动作，先做出来，再根据反馈调整。",
-      tarotRev: "{{0}}逆位出现在「{{1}}」，关键词是{{2}}。它更像在提醒：你在某个环节上硬撑或回避，能量没有真正流动。与其加倍用力，不如先找出让你迟迟不动的具体顾虑，把它写下来，再决定要不要继续。",
-      tarotSynth: "把三张牌连起来看：过去那张解释了你为什么会走到今天，现在这张决定你此刻的手感，未来那张只是当下选择的延长线。你真正要处理的不是结果，而是还在拖的那件小事。设一个明确的时间点，比如这周日晚上，只看进度不看情绪。",
+      tarotUp: "{{0}}正位落在「{{1}}」，关键词是{{2}}。可以把这个意象放回你的问题，找一个真实片刻：哪些细节与它呼应，哪些并不符合？先确认一个条件，再决定是否尝试一个小动作。",
+      tarotRev: "{{0}}逆位出现在「{{1}}」，关键词是{{2}}。逆位可以提供一个不同角度：这种力量是否还没显现、用得太多，或更需要向内观察？这些只是待核实的问题，可以找一个具体例子对照，不把逆位当成坏结果。",
+      tarotSynth: "把三张牌作为三个观察角度：过去看可能沿用的模式，现在区分已知与待核实的条件，未来提出一个可以调整的尝试。先选择与你实际经历有联系的部分，记下一周后准备回看的细节；牌面不确定事情的结果。",
       tarotAct1: "今晚列出这件事最坏的结果，以及你能接受的底线",
       tarotAct2: "这周约一个具体的人，问一个具体的问题，别用消息试探",
       tarotAct3: "三天后回看：哪一步真的推动了事情，哪一步只是缓解焦虑",
@@ -236,10 +245,10 @@
       oracleAct3: "把重要决定推迟到明天同一时间，留一个冷静窗口",
       oracleClose: "签示一时之象，路仍由你走。",
       numTone: "灵数 · {{0}} 凝成「{{1}}」。",
-      numText: "把 {{0}} 逐位相加得到 {{1}}，约到第 {{2}} 号能量「{{3}}」。{{4}} 这组数字更像在说：你现在不缺想法，缺的是一个明确的起手式。先把手上最乱的那件事收拢成一条可执行的动作，再谈方向。",
-      numSymbolText: "取象为「{{0}}」，主题是「{{1}}」。落到日常，它提醒你把注意力从「别人怎么看」挪回「我今天能完成什么」。如果你最近总在等一个更好的时机，这组数字更支持你先做出一个 60 分的小结果，再根据反馈调整。",
-      numNowText: "「{{0}}」落在当下，具体指向你正在拖的那件事。先问自己：它卡在信息不足，还是怕做错？如果是信息不足，今天补一个关键问题；如果是怕做错，把任务缩到 20 分钟能完成的最小版本。做完这一步，判断会清楚很多。",
-      numSynth: "把这组数字当成一张当下状态的草图：你有能量，也有方向感，但容易被「再准备一下」拖住。更有效的做法是设一个 72 小时窗口，只推进一件最重要的小事，用结果代替反复权衡；做完再决定下一步，而不是现在就逼自己想清全部。",
+      numText: "把 {{0}} 逐位相加得到 {{1}}。按本站十二枚印记映射，取象为「{{2}}」，主题是「{{3}}」。{{4}} 若你正面对一个难以开始的选择，可以借这个意象想想：哪一步能在今天先试做，再用实际反馈校准方向？",
+      numSymbolText: "取象为「{{0}}」，主题是「{{1}}」。它是一个反思的切口，并非对性格或未来的判断。若你正在等待更好的时机，可以试着写下当前已知的信息，找出一个不必作最终承诺的小实验。",
+      numNowText: "围绕「{{0}}」，选一个与你处境相符的问题：还需要补充哪条信息？哪项代价是你愿意承担的？如果一时没有答案，可以先安排一次二十分钟的尝试，结束后记录新的发现。",
+      numSynth: "这些数字不替你作决定。你可以用取到的意象重新描述眼前的处境，分清已知事实与尚待验证的担忧，再选一件小事去获得新信息。若这份示例与你并不相符，也可以留下自己的解释；真实行动后的感受，比印记本身更值得参考。",
       numAct1: "今晚写下三个必须完成项，删掉一个，只留最重要的两个",
       numAct2: "给那件拖着的事设一个 20 分钟计时器，时间到就停",
       numAct3: "三天后回看一次进度，只记录做成了什么，不评价情绪",
@@ -259,8 +268,9 @@
       heroSub: "At the path's end stand six doors; behind each waits an old way of asking the stars.",
       gateHint: "The gate opens by itself · or touch it to enter",
       idKicker: "STEP ONE · CHOOSE YOUR GUISE",
+      idGroup: "Choose your traveler", idEnter: "Begin this journey",
       idTitle: "As whom will you walk the star-path?",
-      idSub: "Your identity lights up its answering door and writes your first question for you.",
+      idSub: "Choose the traveler that feels closest to you. Your question travels with you.",
       idWanderer: "The Wanderer", idWandererLine: "Asks the road: study, career, the next step",
       idHeart: "The Heartbearer", idHeartLine: "Asks the heart: love, longing, reunion and goodbye",
       idChooser: "The Chooser", idChooserLine: "Asks the fork: this or that, begin or stop",
@@ -276,12 +286,12 @@
       startBtn: "Begin",
       demoNote: "Online demo mode: readings are built-in samples. Double-click 启动演示.bat locally to connect StepFun and generate readings for your own question.",
       demoBanner: "Demo · built-in sample reading (run 启动演示.bat locally for live AI)",
-      cardTarot: "Tarot", cardTarotDesc: "Three cards: past, present, future",
-      cardGua: "I Ching", cardGuaDesc: "Cast coins, build a hexagram",
-      cardNumber: "Numerology", cardNumberDesc: "Ask the stars with numbers",
-      cardMansion: "28 Mansions", cardMansionDesc: "A beast per mansion, guiding the sky",
-      cardRune: "Runes", cardRuneDesc: "Three rune-stones, cast for counsel",
-      cardOracle: "Oracle", cardOracleDesc: "Shake for a lot, verses reveal fate",
+      cardTarot: "Tarot", cardTarotDesc: "Three cards: patterns and choices",
+      cardGua: "I Ching", cardGuaDesc: "Compare conditions and change",
+      cardNumber: "Numerology", cardNumberDesc: "Twelve symbols, everyday rhythms",
+      cardMansion: "28 Mansions", cardMansionDesc: "A mansion and beast, a new perspective",
+      cardRune: "Runes", cardRuneDesc: "Three runes: resources and boundaries",
+      cardOracle: "Oracle", cardOracleDesc: "One poem, one concern",
       backBtn: "‹ Back",
       titleTarot: "Tarot · Star-ring Guidance", titleGua: "I Ching · Casting Array",
       titleNumber: "Numerology · Echo of Numbers", titleMansion: "Lunar Mansions · Sky Guidance",
@@ -301,16 +311,16 @@
       guaToss: "Cast", guaReveal: "View Reading",
       numPh: "e.g. 19980918", numGen: "Generate", numReveal: "View Reading",
       mansionSel: "Capture", mansionSpin: "Spin", mansionPick: "Mansion Guidance",
-      runeCast: "Cast", runeReveal: "View Reading",
+      runeCast: "Fill remaining at random", runeReveal: "View Reading",
       oracleDraw: "Draw Lot", oracleReveal: "View Verse",
       readingTitle: "Reading", readingSpeak: "🔊 Read", readingExport: "⤓ Export", readingExit: "✕ Exit",
       camClose: "Close", camStatus: "Processed locally, never uploaded",
-      camGesturePrefix: "Gesture: ", camNoHand: "No hand · raise your hand into view", camHandOn: "✋ Open palm · hold to select", camModelFail: "Model not loaded · use the mouse",
+      camGesturePrefix: "Gesture: ", camNoHand: "No hand · raise your hand into view", camHandOn: "✋ Open palm · hold 1.2s to select", camModelFail: "Model not loaded · use the mouse",
       camNeedOpen: "✋ Open your palm · palm becomes the cursor",
       camDetecting: "Detecting…", camNoResult: "Gesture model not responding · reload or use the mouse", camHit: "✓ Selected · {{0}}",
       camNeedHttp: "The gesture model can't load from file:// (browsers block local file fetches).\n\nFix: double-click 启动演示.bat in the HW05 folder — it opens http://localhost:8787\nYou can also type http://localhost:8787 in the address bar.\n\nEverything else (six gates, AI readings) still works on this file:// page.",
       camLoading: "Loading model… {{0}}s", camNoVideo: "No camera frames · another app may be using it", camSendFail: "Gesture model failed · use the mouse",
-      cgOpen: "Open palm · move cursor, hold to select",
+      cgOpen: "Open palm · move the cursor, hold still for 1.2s to select",
       skipReveal: "Skip reveal",
       stageTarot: "SPREAD", stageGua: "HEXAGRAM", stageNumber: "NUMEROLOGY", stageMansion: "MANSION", stageRune: "RUNES", stageOracle: "LOT",
       tarotHintIdle: "Drag the deck sideways — the large center card is your current card; click it or the selector above to pick.",
@@ -326,7 +336,7 @@
       numRandom: "✦ Random",
       numGuide: "No number in mind? Tap Random and let the dust choose one.",
       numRevealTip: "Your sigil is ready · tap below for the full reading",
-      numSum: "Digit sum {{0}}", numRoot: "Resonance {{0}}",
+      numSum: "Digit sum {{0}}", numRoot: "Symbol {{0}}",
       guaIdle: "Awaiting six lines",
       triUpper: "Upper", triLower: "Lower",
       mansionKicker: "MANSION",
@@ -346,7 +356,7 @@
       lblYouAsk: "You ask · ", lblYouAskSpeech: "You ask: ",
       lblSynthesis: "Synthesis", lblActions: "Suggested steps",
       roOverview: "Summary", roActions: "Steps",
-      disclaimer: "This is the built-in sample reading of the online demo. Run 启动演示.bat locally and the same structure is generated live by StepFun for your question.",
+      disclaimer: "This is a built-in sample, not a response to your question. It offers symbolic reflection, not factual predictions.",
       rdTarot: "Tarot Reading", rdGua: "I Ching Reading", rdNumber: "Numerology Reading", rdMansion: "Mansions Reading", rdRune: "Runes Reading", rdOracle: "Oracle Reading",
       expBrand: "ASTRA Divination", expFooter: "Online demo · sample reading · ",
       expSynthesis: "Synthesis", expActions: "Suggested steps",
@@ -381,7 +391,7 @@
       rlWaitHint: "Usually 15–30 seconds — hold your question in mind meanwhile.",
       ldTarot: "Three cards map to past, present, and future. The reading weighs position, orientation, and symbolism to trace where this matter came from and where it may go.",
       ldGua: "The primary hexagram reflects your current situation; the changed hexagram hints at the trend. The reading works through trigrams, moving lines, and the five phases.",
-      ldNumber: "Numerology draws on the sum, root, and repeating rhythm of your number to reflect your current energy and a practical direction.",
+      ldNumber: "This app maps a digit sum to one of twelve custom symbols, offering imagery for reflection and a practical next step.",
       ldMansion: "The chosen lunar mansion and its quadrant set the frame. The reading draws on its imagery and position to illuminate the people and timing involved.",
       ldRune: "Each of the three rune stones carries a stance and a sense of time. The reading joins their meanings and placement into one message worth heeding.",
       ldOracle: "The lot's grade and poem are the backbone. The reading unpacks its imagery and allusions to gauge the tendency of your question and how best to respond.",
@@ -390,9 +400,9 @@
       ttsFail: "Voice synthesis failed, switched to browser speech.",
       expFooterLive: "StepFun live generation · inspiration only · ",
       tarotTone: "The cards have already left a clue.",
-      tarotUp: "{{0}} upright in “{{1}}”, keyed to {{2}}. It says the initiative is still in your hands: the block is more about pacing than about conditions. Shrink next week's goal to one concrete move, make it, then adjust from the feedback.",
-      tarotRev: "{{0}} reversed in “{{1}}”, keyed to {{2}}. It suggests you're forcing or avoiding one part of this, so the energy isn't moving. Instead of pushing harder, name the specific worry that keeps you still, write it down, then decide whether to continue.",
-      tarotSynth: "Read together: the past card explains how you got here, the present card sets your current grip, and the future card is only an extension of today's choice. What needs handling isn't the outcome but the small thing still being postponed. Pick a fixed checkpoint, say Sunday evening, and review progress, not mood.",
+      tarotUp: "{{0}} upright in “{{1}}”, keyed to {{2}}. Bring this image back to your question. Which real details fit it, and which do not? Verify one condition before choosing a small action.",
+      tarotRev: "{{0}} reversed in “{{1}}”, keyed to {{2}}. A reversal offers a different question: might this quality be less visible, overused, or worth exploring inwardly? Compare one real example; a reversed card is not a bad outcome.",
+      tarotSynth: "Use the three cards as three lenses: a possible carried pattern, present conditions to verify, and a reversible experiment. Keep what connects with your actual experience, and choose one detail to review next week. The cards do not establish an outcome.",
       tarotAct1: "Tonight, write the worst realistic outcome and the bottom line you can accept",
       tarotAct2: "This week, ask one specific person one specific question — no hinting by text",
       tarotAct3: "In three days, check which step moved things and which only eased anxiety",
@@ -433,20 +443,22 @@
       oracleAct3: "Delay the big decision until the same time tomorrow; keep a cooling window",
       oracleClose: "The lot shows a moment's image; the road is still yours.",
       numTone: "Numerology · {{0}} condenses into “{{1}}”.",
-      numText: "Adding the digits of {{0}} gives {{1}}, resolving to energy No. {{2}}, “{{3}}”. {{4}} The number suggests you don't lack ideas; you lack a clear first move. Gather the messiest thing on your plate into one executable action before talking about direction.",
-      numSymbolText: "The glyph is “{{0}}”, themed “{{1}}”. In daily terms, it asks you to move attention from “how others see it” back to “what I can finish today”. If you've been waiting for a better moment, this number favors a 60-point result first, then adjustment from feedback.",
-      numNowText: "“{{0}}” lands in the present and points at the thing you keep postponing. Ask yourself: is it blocked by missing information, or by fear of being wrong? Missing information — ask one key question today. Fear — shrink it to a 20-minute minimum version. After that step, the judgment gets much clearer.",
-      numSynth: "Treat this number as a sketch of your current state: you have energy and a sense of direction, but “let me prepare a bit more” keeps delaying you. A better move is a 72-hour window with one important small task, letting results replace rumination. Decide the next step after finishing, not before.",
+      numText: "The digits of {{0}} add up to {{1}}. This app's twelve-symbol mapping selects “{{2}}”, with the theme “{{3}}”. {{4}} If you are facing a choice that is hard to begin, consider a small step you could try today, then use actual feedback to adjust your direction.",
+      numSymbolText: "The symbol is “{{0}}”, with the theme “{{1}}”. It is a reflection prompt, not a judgment about your personality or future. If you are waiting for a better moment, list what you already know and design a small experiment that requires no final commitment.",
+      numNowText: "Use “{{0}}” to ask a question that fits your situation: what information is missing, and which cost would you accept? If the answer is unclear, try a twenty-minute experiment and write down what you discover afterwards.",
+      numSynth: "These digits do not make a decision for you. Use the image to describe your situation, separate known facts from untested concerns, and choose one small action that could bring new information. If this sample does not fit, leave yourself a different interpretation. Your experience after taking action matters more than the symbol.",
       numAct1: "Tonight, list three must-dos, delete one, and keep the two that matter",
       numAct2: "Set a 20-minute timer on the postponed task and stop when it rings",
       numAct3: "In three days, review only what got done, not how you felt about it",
       numClose: "The number is only a doorway; behind it is still your own life."
     }
   };
+  let originalSampleLanguage=false;
   function t(key, args) {
     let s = (I18N[lang] && I18N[lang][key] != null) ? I18N[lang][key] : (I18N.zh[key] != null ? I18N.zh[key] : key);
+    if(!originalSampleLanguage)s=window.AstraLocale.translate(s);
     if (args && args.length) s = s.replace(/\{\{(\d+)\}\}/g, (m, i) => (args[+i] != null ? args[+i] : m));
-    return s;
+    return originalSampleLanguage?s:window.AstraLocale.translate(s);
   }
   function applyI18nStatic() {
     document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.getAttribute("data-i18n")); });
@@ -455,41 +467,70 @@
     document.querySelectorAll("[data-i18n-aria]").forEach(el => { el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria"))); });
   }
   function applyLang() {
-    document.documentElement.lang = lang === "en" ? "en" : "zh-CN";
+    document.documentElement.lang = window.AstraLocale.get()==="zh"?"zh-CN":window.AstraLocale.get();
     applyI18nStatic();
+    if(window.AstraPinch){window.AstraPinch.reset();refreshGestureModeUI();}
     if (themeToggle) themeToggle.textContent = t("themeToggle");
     if (cameraToggle) cameraToggle.textContent = camOn ? t("cameraOn") : t("cameraToggle");
     if (soundToggle) {
       soundToggle.textContent = soundOn ? t("soundOn") : t("soundOff");
       soundToggle.classList.toggle("is-on", soundOn);
+      soundToggle.setAttribute("aria-pressed", String(soundOn));
     }
-    if (bgmToggle) { bgmToggle.textContent = bgmOn ? t("bgmOn") : t("bgmOff"); bgmToggle.classList.toggle("is-on", bgmOn); }
-    if (langToggle) langToggle.textContent = lang === "zh" ? "EN" : "中";
+    if (bgmToggle) { bgmToggle.textContent = bgmOn ? t("bgmOn") : t("bgmOff"); bgmToggle.classList.toggle("is-on", bgmOn); bgmToggle.setAttribute("aria-pressed", String(bgmOn)); }
+    if (langToggle) langToggle.value = window.AstraLocale.get();
     document.title = t("docTitle");
     refreshQuestionChips();
     refreshDynamicLang();
     refreshHomeNote();
     refreshReadingBanner();
     loadHeroQuote();
-    // 已生成的解读是模型按原语言写死的：切语言时重新求一次，避免中英混排
-    if (state.screen === "reading") {
-      const rr = pendingReading || currentReading;
-      if (rr) showReading(rr.type, rr.data);
-    }
+    syncReadingLanguageControls();window.AstraLocale.localize();
+    // Changing interface language does not redraw symbols or charge for another report.
+    if (window.astraExperience) window.astraExperience.onLanguage();
+
   }
   function setLang(l) {
-    if (l !== "en" && l !== "zh") return;
+    if (!window.AstraReadingLanguages.supported(l)) return;
+    window.AstraLocale.set(l);
+    readingLanguageChoice="";
+    const audioState = state.screen === "reading" && readingPlayer ? readingPlayer.captureState() : null;
     if (state.screen === "reading") { stopAudio(); resetSpeakBtn(); }
-    lang = l;
-    try { localStorage.setItem("lang", l); } catch (e) {}
+    lang = l==="zh"?"zh":"en";
+    try { localStorage.setItem("lang", lang); } catch (e) {}
     applyLang();
+    if (audioState && readingPlayer) readingPlayer.restoreState(audioState);
   }
   const langToggle = document.getElementById("langToggle");
   const bgmToggle = document.getElementById("bgmToggle");
+  let readingLanguageChoice="";
+  function languageOptions(selected=""){
+    return [new Option(window.AstraLocale.translate("Use interface language"),""),...Object.entries(window.AstraReadingLanguages.names).map(([id,name])=>new Option(name,id))].map(option=>{option.selected=option.value===selected;return option;});
+  }
+  function syncReadingLanguageControls(){
+    document.querySelectorAll('[data-reading-language]').forEach(select=>{select.replaceChildren(...languageOptions(readingLanguageChoice));});
+    document.querySelectorAll('[data-reading-language-label]').forEach(el=>el.textContent=window.AstraLocale.translate(lang==="zh"?"解读语言":"Reading language"));
+    const button=document.getElementById("regenerateLanguage");if(button){button.textContent=window.AstraLocale.translate(lang==="zh"?"保留取象，按此语言生成":"Generate with these symbols");button.disabled=!!(readingLoading&&!readingLoading.hidden);}
+  }
+  function showReadingLanguageStatus(message){const el=document.getElementById("readingLanguageStatus");if(el){el.textContent=window.AstraLocale.translate(message);el.hidden=false;}}
+  function installReadingLanguageControls(){
+    document.querySelectorAll('.screen[data-screen]').forEach(screen=>{
+      if(!["tarot","rune","gua","oracle","number","mansion","reading"].includes(screen.dataset.screen))return;
+      const box=document.createElement("div");box.className="reading-language-control";
+      const label=document.createElement("label"),text=document.createElement("span"),select=document.createElement("select");text.dataset.readingLanguageLabel="";select.dataset.readingLanguage="";select.setAttribute("aria-label","Reading language");label.append(text,select);box.append(label);
+      select.addEventListener("change",()=>{readingLanguageChoice=select.value;syncReadingLanguageControls();});
+      if(screen.dataset.screen==="reading"){
+        const button=document.createElement("button");button.type="button";button.className="ghost-btn";button.id="regenerateLanguage";
+        button.addEventListener("click",()=>{if(!currentReading||!readingLoading.hidden)return;if(!window.astraExperience.flushSavedEdits())return;const target=readingLanguageChoice||window.AstraLocale.get();showReading(currentReading.type,{...currentReading.data,_outputLanguage:target});});
+        box.append(button);const status=document.createElement("p");status.id="readingLanguageStatus";status.setAttribute("role","status");status.hidden=true;box.append(status);screen.querySelector('.panel-head').after(box);
+      }else (screen.querySelector('.ask-row')||screen.querySelector('.panel-head')).before(box);
+    });syncReadingLanguageControls();
+  }
+
 
   /* ---------------- 状态机 ---------------- */
   const state = { screen: "home" };
-  const reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  let reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const MODULE_SCREENS = { tarot: 1, gua: 1, number: 1, mansion: 1, rune: 1, oracle: 1 };
   const sceneVeil = document.getElementById("sceneVeil");
   let lastModule = null;
@@ -503,10 +544,16 @@
     else document.documentElement.removeAttribute("data-module");
     if (window.__particles) window.__particles.recolor();   // 星尘跟着房间换色
   }
+  const visitedModules = new Set();
   function onEnterScreen(name) {
+    if (MODULE_SCREENS[name] && visitedModules.has(name)) {
+      if (name === "gua") startGuaAnim(); else stopGuaAnim();
+      return;
+    }
+    if (MODULE_SCREENS[name]) visitedModules.add(name);
     // 入门一记主题色迸溅：此刻星尘已由 applyRoom 换成该门的配色
     if (MODULE_SCREENS[name] && window.__particles && !reduced) window.__particles.burst();
-    if (name === "home") { setStage(journey.entered ? "path" : "gate", true); updateIdChip(); armGateAuto(); }
+    if (name === "home") { setStage(journey.entered ? (journey.stage === "gate" ? "identity" : journey.stage) : "gate", true); updateIdChip(); armGateAuto(); }
     if (name === "tarot") resetTarot();
     if (name === "gua") { resetGua(); startGuaAnim(); }
     if (name === "number") resetNumber();
@@ -515,42 +562,57 @@
     if (name === "oracle") resetOracle();
     if (name !== "gua") stopGuaAnim();
   }
-  function switchScreen(name) {
+  function switchScreen(name, { portal = false } = {}) {
     if (state.screen === name) return;
+    if(window.AstraPinch)window.AstraPinch.reset();
+    if (state.screen === "gua" && name !== "gua") pauseGuaCasting();
+    if (state.screen === "reading" && window.astraExperience && !window.astraExperience.flushSavedEdits()) return;
+    if (state.screen === "reading" && name !== "reading") {
+      loadToken++;
+      if (readingAbort) readingAbort.abort();
+      clearInterval(loadTimer); clearInterval(loreTimer);
+      readingLoading.hidden = true;
+    }
     if (state.screen === "reading" && name !== "reading") { stopAudio(); resetSpeakBtn(); }
     const toReading = name === "reading";
-    sfx("whoosh");
+    if (!portal) sfx("whoosh");
     clearTimeout(castTimer);
     document.body.classList.remove("is-cast");
-    if (!reduced) document.body.classList.add("is-transitioning");
+    if (!reduced && !portal) document.body.classList.add("is-transitioning");
     // 解读自带星尘揭晓层，不再叠一层幕布
-    if (!reduced && !toReading) sceneVeil.classList.add("in");
+    if (!reduced && !toReading && !portal) sceneVeil.classList.add("in");
     if (window.__particles) window.__particles.collapse();
     clearTimeout(switchTimer);
     const swapAt = reduced ? 0 : (toReading ? 360 : 560);
-    switchTimer = setTimeout(() => {
+    const swapScreens = () => {
       document.querySelectorAll(".screen").forEach(s => s.classList.remove("is-active", "is-arriving"));
       const el = document.querySelector('[data-screen="' + name + '"]');
       if (el) {
         el.classList.add("is-active");
-        if (!reduced) {
+        if (!reduced && !portal) {
           el.classList.add("is-arriving");
           clearTimeout(arriveTimer);
           arriveTimer = setTimeout(() => el.classList.remove("is-arriving"), 1900);
         }
       }
       state.screen = name;
+      if(window.AstraPinch)refreshGestureModeUI();
       applyRoom(name);
       document.body.classList.toggle("is-ritual", toReading);
       if (window.__particles) window.__particles.expand();
       bumpIdle();
       onEnterScreen(name);
-      if (!reduced && !toReading) requestAnimationFrame(() => sceneVeil.classList.remove("in"));
-      if (!reduced) {
+      document.querySelectorAll(".screen").forEach(s => { s.inert = s !== el; s.setAttribute("aria-hidden", String(s !== el)); });
+      if (window.astraExperience) window.astraExperience.onScreen(name);
+      const heading = el && el.querySelector(".panel-title, .stage-title, .hero-title");
+      if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+      if (!reduced && !toReading && !portal) requestAnimationFrame(() => sceneVeil.classList.remove("in"));
+      if (!reduced && !portal) {
         clearTimeout(transTimer);
         transTimer = setTimeout(() => document.body.classList.remove("is-transitioning"), 950);
       }
-    }, swapAt);
+    };
+    if (portal) swapScreens(); else switchTimer = setTimeout(swapScreens, swapAt);
   }
   document.querySelectorAll("[data-go]").forEach(btn => {
     btn.addEventListener("click", () => switchScreen(btn.getAttribute("data-go")));
@@ -570,7 +632,9 @@
     const canvas = document.getElementById("bg");
     const lowPower = (navigator.hardwareConcurrency || 8) <= 4 ||
       (window.matchMedia && window.matchMedia("(max-width: 680px)").matches);
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: "high-performance" });
+    let renderer;
+    try { renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: "low-power" }); }
+    catch (_) { canvas.hidden = true; return null; }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowPower ? 1.25 : 1.5));
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, 1, 1, 3000);
@@ -830,6 +894,7 @@
       if (paused) { raf = null; return; }
       raf = requestAnimationFrame(loop);
       const now = performance.now();
+      if ((reduced || root.dataset.calmMotion === "true") && now - lastT < 180) return;
       const dt = Math.min(0.05, (now - lastT) / 1000);
       lastT = now;
       const tw = now * 0.001;
@@ -990,7 +1055,10 @@
   const POS = ["过去", "现在", "未来"];
   const POS_EN = ["Past", "Present", "Future"];
   function posName(i) { return lang === "en" ? (POS_EN[i] || POS[i]) : (POS[i] || POS_EN[i]); }
+  function tarotConfig(data) { return window.AstraTarotSpreads.get(data ? data.spreadId : tarotSpreadId); }
+  function tarotPosName(i, data) { return tarotConfig(data).positions[lang === "en" ? 1 : 0][i] || ""; }
   function tarotName(i) { return lang === "en" ? TAROT[i][2] : TAROT[i][0]; }
+  function tarotReversed(value){return ["逆","rev","reversed",1].includes(value);}
   function tarotKw(i) { return lang === "en" ? TAROT[i][3] : TAROT[i][1]; }
   const GUA = ["乾","坤","屯","蒙","需","讼","师","比","小畜","履","泰","否","同人","大有","谦","豫",
     "随","蛊","临","观","噬嗑","贲","剥","复","无妄","大畜","颐","大过","坎","离","咸","恒",
@@ -1056,6 +1124,12 @@
   function numSymbol(i) { return lang === "en" ? NUMBER_SYMBOLS_EN[i] : NUMBER_SYMBOLS[i]; }
   function numThemeStr(i) { return lang === "en" ? NUMBER_THEME_EN[i] : NUMBER_THEME[i]; }
   function numGlossStr(i) { return lang === "en" ? NUMBER_GLOSS_EN[i] : NUMBER_GLOSS[i]; }
+  function numLens(i) { return window.AstraNumberLenses[lang === "en" ? "en" : "zh"][i]; }
+  function numberFacts(raw) {
+    const digitSum = String(raw || "").split("").reduce((sum, digit) => sum + Number(digit || 0), 0);
+    const symbolIdx = digitSum % NUMBER_SYMBOLS.length;
+    return { digitSum, symbolIdx, symbolCount: NUMBER_SYMBOLS.length, symbolOrdinal: symbolIdx + 1, mappingRule: "digit-sum-mod-12" };
+  }
 
   // 灵数徽记（生成图，缺失时回退到程序化曼陀罗）
   const NUM_IMG = [];
@@ -1351,16 +1425,17 @@
   /* ============================================================
      示例解读生成（mock）—— 接真实模型时整段替换
      ============================================================ */
-  function mockReading(type, data) {
+  function mockReading(type,data){originalSampleLanguage=true;try{return mockReadingBase(type,data);}finally{originalSampleLanguage=false;}}
+  function mockReadingBase(type, data) {
     let r;
     if (type === "tarot") {
       const readings = data.cards.map((c, i) => {
-        const nm = tarotName(c.idx), kw = tarotKw(c.idx), pos = posName(i);
-        const rev = c.orient === "逆";
+        const nm = tarotName(c.idx), kw = tarotKw(c.idx), pos = tarotPosName(i, data);
+        const rev = ["逆", "rev", "reversed", 1].includes(c.orient);
         return {
           position: pos,
           card: nm + (rev ? (lang === "en" ? " (Rev)" : "（逆）") : ""),
-          text: rev ? t("tarotRev", [nm, pos, kw]) : t("tarotUp", [nm, pos, kw])
+          text: (rev ? t("tarotRev", [nm, pos, kw]) : t("tarotUp", [nm, pos, kw])) + " " + tarotConfig(data).lenses[lang === "en" ? 1 : 0][i]
         };
       });
       r = {
@@ -1372,15 +1447,16 @@
       };
     }
     else if (type === "gua") {
-      const baseName = guaFullName(data.guaIndex - 1);
-      const changeName = guaFullName(data.changeIdx);
+      const facts = guaReadingFacts(data.lines);
+      const baseName = facts.name, changeName = facts.changeName;
+      const positions = facts.movingPositions.map(i => guaIdxName(i - 1)).join(lang === "en" ? ", " : "、");
       r = {
-        tone: t("guaTone", [baseName]),
+        tone: t(facts.isStatic ? "guaStaticTone" : "guaTone", [baseName]),
         readings: [
-          { position: t("lblBaseHex"), card: baseName, text: t("guaBase", [baseName, data.guaIndex]) },
-          { position: t("lblChangeHex"), card: changeName, text: t("guaChange", [changeName]) }
+          { position: t("lblBaseHex"), card: baseName, text: t("guaBaseDetailed", [baseName, facts.upperTrigram.name, facts.lowerTrigram.name]) },
+          { position: t(facts.isStatic ? "guaObserve" : "guaChangeFocus"), card: facts.isStatic ? baseName : changeName, text: facts.isStatic ? t("guaStaticReading", [baseName]) : t("guaMovingReading", [positions, changeName]) }
         ],
-        synthesis: t("guaSynth"),
+        synthesis: t(facts.isStatic ? "guaStaticSynth" : "guaMovingSynth", [baseName, changeName, positions]),
         actions: [t("guaAct1"), t("guaAct2"), t("guaAct3")],
         closing: t("guaClose")
       };
@@ -1440,19 +1516,27 @@
     else {
       const raw = String(data.raw);
       const symbol = numSymbol(data.symbolIdx), theme = numThemeStr(data.themeIdx);
-      const sum = raw.split("").reduce((a, b) => a + Number(b || 0), 0);
       const gloss = numGlossStr(data.symbolIdx);
       r = {
         tone: t("numTone", [raw, symbol]),
         readings: [
-          { position: t("lblNum"), card: raw, text: t("numText", [raw, sum, data.symbolIdx + 1, theme, gloss]) },
-          { position: t("lblNumSymbol"), card: symbol, text: t("numSymbolText", [symbol, theme]) },
-          { position: t("lblNumNow"), card: theme, text: t("numNowText", [theme]) }
+          { position: t("lblNumSymbol"), card: symbol, text: numLens(data.symbolIdx)[0] + " " + gloss },
+          { position: t("lblNumNow"), card: theme, text: numLens(data.symbolIdx)[1] + (lang === "en" ? " Pick one real moment from the past week, write down what happened, then try one small adjustment and notice the difference." : " 可以先选过去一周的一个真实片刻，记下当时发生了什么，再做一次小调整，看看感受是否不同。") }
         ],
         synthesis: t("numSynth"),
         actions: [t("numAct1"), t("numAct2"), t("numAct3")],
         closing: t("numClose")
       };
+    }
+
+    if (type === "tarot") {
+      const spread = tarotConfig(data);
+      r.spreadId = spread.id;
+      if (spread.id !== "time") {
+        r.tone = spread.title[lang === "en" ? 1 : 0];
+        r.synthesis = spread.focus[lang === "en" ? 1 : 0] + (lang === "en" ? " These are sample reflections. Compare the images with the conditions you can verify, then choose one small, reversible step." : " 这里展示的是示例观察。把各张牌的意象与实际能核实的条件放在一起比较，再选择一个可调整的小步骤。");
+      }
+      if (spread.actions === 1) r.actions = [lang === "en" ? "Today, record one real moment connected with this image, then choose one small adjustment." : "今天记下一个与这个意象有关的真实片刻，再选择一个小调整。"];
     }
 
     // 议题识别 + 提问回响：把用户的问题轻柔地接进综合段
@@ -1533,16 +1617,16 @@
     if (type === "tarot" && Array.isArray(data.cards)) {
       body = stageDiv("stage-cards");
       data.cards.forEach((c, i) => {
-        const cell = stageDiv("stage-card" + (c.orient === "逆" ? " rev" : ""));
+        const cell = stageDiv("stage-card" + (tarotReversed(c.orient) ? " rev" : ""));
         cell.style.animationDelay = (i * 0.1) + "s";
         const cv = document.createElement("canvas");
         cv.width = 240; cv.height = 366;
         cv.dataset.idx = c.idx; cv.dataset.name = tarotName(c.idx);
-        cv.dataset.rev = c.orient === "逆" ? "1" : "";
-        drawCardFace(cv.getContext("2d"), 240, 366, c.idx, tarotName(c.idx), c.orient === "逆");
+        cv.dataset.rev = tarotReversed(c.orient) ? "1" : "";
+        drawCardFace(cv.getContext("2d"), 240, 366, c.idx, tarotName(c.idx), tarotReversed(c.orient));
         cell.appendChild(cv);
         const pos = stageDiv("st-pos");
-        pos.textContent = posName(i) + (c.orient === "逆" ? (lang === "en" ? " · Rev" : " · 逆") : "");
+        pos.textContent = tarotPosName(i, data) + (tarotReversed(c.orient) ? (lang === "en" ? " · Rev" : " · 逆") : "");
         cell.appendChild(pos);
         body.appendChild(cell);
       });
@@ -1571,14 +1655,15 @@
       row.appendChild(stageTri(TRI[binary & 7], "triLower"));
       disc.appendChild(row);
       body.appendChild(disc);
-      body.appendChild(stageCap(guaFullName(data.guaIndex - 1) + (data.changeIdx != null ? "  →  " + guaFullName(data.changeIdx) : "")));
+      const facts = guaReadingFacts(data.lines);
+      body.appendChild(stageCap(facts.name + (facts.isStatic ? " · " + t("guaStaticShort") : "  →  " + facts.changeName)));
     } else if (type === "number") {
       body = stageDiv("stage-number");
       ensureNumImg(data.symbolIdx);
-      const mandala = drawNumMandala(String(data.raw), data.symbolIdx);
+      const mandala = drawNumMandala(String(data.raw || "0"), data.symbolIdx);
       mandala.style.width = "min(280px, 66vw)"; mandala.style.height = "min(280px, 66vw)";
       body.appendChild(mandala);
-      body.appendChild(stageCap(data.raw + "  →  " + numSymbol(data.symbolIdx) + " · " + numThemeStr(data.themeIdx)));
+      body.appendChild(stageCap((data.raw || t("uxHiddenNumber")) + "  →  " + numSymbol(data.symbolIdx) + " · " + numThemeStr(data.themeIdx)));
     } else if (type === "mansion") {
       body = stageDiv("stage-mansion");
       const disc = stageDiv("stage-mansion-disc");
@@ -1657,9 +1742,6 @@
   const rlSteps = readingLoading ? Array.from(readingLoading.querySelectorAll(".rl-steps li")) : [];
   let currentReading = null;        // { type, data, r } —— 供朗读 / 导出复用
   let pendingReading = null;        // 正在请求的解读，语言切换时据此重发
-  let currentReadingText = "";      // 纯文本，供语音朗读
-  let revealTimers = [];
-  let revealActive = false;
   let loadTimer = null, loadToken = 0, loadStarted = 0, loadType = null, loadFinished = false;
   let loreTimer = null, loreIdx = 0;
   const rlRitual = document.getElementById("rlRitual");
@@ -1667,27 +1749,63 @@
   const rlDrawBtn = document.getElementById("rlDraw");
   let loadData = null, loadP = 6, ritualItems = [], ritualWinEls = [], ritualTube = null;
   const LOAD_DESC = { tarot: "ldTarot", gua: "ldGua", number: "ldNumber", mansion: "ldMansion", rune: "ldRune", oracle: "ldOracle" };
-  // 等待期的星象冷知识：轮播展示，点卡片或「换一条星语」可切换；带 mod 的优先匹配当前模块
+  // 等待期的反思提示：轮播展示，带 mod 的优先匹配当前模块
   const LORE = [
-    { mod: "mansion", zh: "二十八宿轮流值日，今晚当值的星官，正替你把这一卦看完。", en: "The twenty-eight mansions take turns on duty — tonight's star officer is reading this cast with you." },
-    { mod: "gua", zh: "古人把六爻藏在阴阳之变里：三枚铜钱落地，是一次与他们的问答。", en: "The six lines hide in yin and yang: three coins landing is one question asked across centuries." },
-    { mod: "tarot", zh: "塔罗大阿卡纳共二十二张，对应生命之树上的二十二条路径。", en: "The twenty-two Major Arcana mirror the twenty-two paths on the Tree of Life." },
-    { mod: "rune", zh: "如尼文字最初不是用来占卜，而是用来刻写：每一道笔画既是字母，也是低语。", en: "Runes were first carved, not cast: every stroke is a letter and a whisper at once." },
-    { mod: "number", zh: "灵数相信数字是宇宙的节奏；你报出的数字，就是此刻的拍点。", en: "Numerology hears numbers as the universe's rhythm — yours is the beat of this very moment." },
-    { mod: "oracle", zh: "寺观灵签借神明之口说话，解签的人再把话还给你的生活。", en: "Temple slips borrow a divine voice; the reader hands the words back to your life." },
-    { zh: "星光走了很多年才落到你眼里；你要等的答案，也在路上了。", en: "Starlight travelled years to reach your eyes — the answer you await is also on its way." },
-    { mod: "tarot", zh: "牌面逆位不是凶兆：它只是提醒能量转向内在，等着被看见。", en: "A reversed card is not a bad omen: energy turned inward, waiting to be seen." },
-    { mod: "mansion", zh: "苍龙、白虎、朱雀、玄武不是四只兽，而是四季星空轮转的四组星群。", en: "The four beasts are not animals but the star groups of the four seasons turning overhead." },
-    { zh: "给问题留一点空白，解读往往就藏在空白里。", en: "Leave a little blank in your question — the reading often hides in that blank." },
-    { mod: "tarot", zh: "洗牌时牌会记住你的手温：三张牌不是预言，而是三个时间点。", en: "Cards remember the warmth of your hands: three cards are not prophecy but three points in time." },
-    { mod: "gua", zh: "六爻自下而上生长，最下面那一爻，是这件事刚发芽时的样子。", en: "The six lines grow upward — the bottom one is what this matter looked like when it first sprouted." },
-    { mod: "number", zh: "把一串数字反复相加到只剩一位，灵数叫它「根数」，是事情的底色。", en: "Add a number's digits down to one and numerology calls it the root — the undertone of the matter." },
-    { mod: "mansion", zh: "月亮每晚借宿一宿，二十八天正好走完一整圈天赤道。", en: "The moon lodges in one mansion each night, completing the celestial equator in twenty-eight days." },
-    { mod: "rune", zh: "符石落地时朝上的一面才算数；北欧人相信，是命运挑了那一面。", en: "Only the face-up side counts when stones land; the Norse believed fate chose that face." },
-    { mod: "oracle", zh: "签筒里上百支签，只有一支会跳出来——古人说，那是神明伸手。", en: "Of a hundred slips in the tube only one leaps out — the old readers called that a divine hand." },
-    { zh: "等待本身也是仪式的一部分：古人起卦前要斋戒三日，你只需要三十秒。", en: "Waiting is part of the rite: the ancients fasted three days before a cast — you only need thirty seconds." },
-    { zh: "同一个人两次问同一件事，卦象往往不同：变的不是天，是心境。", en: "Ask the same question twice and the signs differ: it is not the sky that changed, but the mind." }
-  ];
+    {
+        "mod": "tarot",
+        "zh": "把三张牌当作三个视角：哪些属于已经发生的事，哪些仍由你选择？",
+        "en": "Treat the three cards as three viewpoints. What has already happened, and what can you still choose?"
+    },
+    {
+        "mod": "gua",
+        "zh": "等铜钱落定，先分清眼前哪些事可以改变，哪些需要等待。",
+        "en": "As the coins settle, consider what you can change now and what may need time."
+    },
+    {
+        "mod": "mansion",
+        "zh": "借一个星宿意象换个角度，再看看你最在意的那件事。",
+        "en": "Borrow a star image as a different viewpoint on the matter you care about."
+    },
+    {
+        "mod": "rune",
+        "zh": "三枚符石已为这次解读留下印记；不必重掷，可以先理一理所问。",
+        "en": "These three runes stay with this reading. There is no need to cast again; take a moment with your question."
+    },
+    {
+        "mod": "number",
+        "zh": "数字取象使用本站十二枚印记映射，给反思一个入口，不判断你的性格或命运。",
+        "en": "This app uses twelve custom symbols for number reflection, offering a prompt rather than a judgment about personality or fate."
+    },
+    {
+        "mod": "oracle",
+        "zh": "先读懂签诗中的一个意象，再想它能否帮你描述眼前的处境。",
+        "en": "Notice one image in the poem, then consider whether it helps you describe your situation."
+    },
+    {
+        "zh": "此刻，你最希望理清的是一个事实、一种感受，还是一个选择？",
+        "en": "What would you most like to clarify: a fact, a feeling, or a choice?"
+    },
+    {
+        "zh": "给问题留一点空白，也给自己的解释留一点位置。",
+        "en": "Leave a little space in the question, and a little room for your own interpretation."
+    },
+    {
+        "zh": "先想一件今天能够试做的小事，解读之后再决定是否行动。",
+        "en": "Think of one small thing you could try today. Decide after reading whether it fits."
+    },
+    {
+        "zh": "你取到的象征已经保留，返回上一页也不会重新抽取。",
+        "en": "Your symbols are preserved. Returning to the previous step will not draw them again."
+    },
+    {
+        "zh": "星语只是另一种视角；是否共鸣，仍由你判断。",
+        "en": "This reading offers another viewpoint. You decide what resonates."
+    },
+    {
+        "zh": "等待时，可以先写下：什么新信息会真正帮助我作决定？",
+        "en": "While you wait, consider what new information would actually help you make a decision."
+    }
+];
   const LORE_GEN = LORE.filter(x => !x.mod);
   const LORE_MOD = {};
   LORE.forEach(x => { if (x.mod) (LORE_MOD[x.mod] = LORE_MOD[x.mod] || []).push(x); });
@@ -1795,8 +1913,8 @@
       rlRitual.appendChild(sign); ritualItems.push(sign);
       ritualWinEls = [ritualItems[ritualItems.length - 2], sign];
     } else {
-      (Array.isArray(d.cards) ? d.cards : []).slice(0, 3).forEach(c => {
-        const rev = c && (c.orient === "rev" || c.orient === 1);
+      (Array.isArray(d.cards) ? d.cards : []).slice(0, 5).forEach(c => {
+        const rev = c && tarotReversed(c.orient);
         const n = mkEl("span", "rr rr-card" + (rev ? " rev" : ""), "✦");
         rlRitual.appendChild(n); ritualItems.push(n);
       });
@@ -1816,8 +1934,12 @@
     const val = Math.max(0, Math.min(100, p));
     loadP = val;
     if (rlFill) rlFill.style.width = val.toFixed(1) + "%";
-    if (rlTrack) rlTrack.setAttribute("aria-valuenow", String(Math.round(val)));
-    paintLoadSteps(done ? 0 : val < 30 ? 0 : val < 58 ? 1 : val < 84 ? 2 : 3, done);
+    if (rlTrack) {
+      rlTrack.removeAttribute("aria-valuenow");
+      rlTrack.setAttribute("aria-valuetext", done ? t("rlReady") : t("uxWaiting"));
+      rlTrack.classList.toggle("is-indeterminate", !done);
+    }
+    paintLoadSteps(done ? 0 : 1, done);
     ritualStep(val, done);
   }
 
@@ -1835,8 +1957,7 @@
   function paintStatus() {
     if (!rlStatus) return;
     if (loadFinished) { rlStatus.textContent = t("rlReady"); return; }
-    const s = loadElapsed();
-    rlStatus.textContent = t(s > 34 ? "rlWorking4" : s > 19 ? "rlWorking3" : s > 7 ? "rlWorking2" : "rlWorking");
+    rlStatus.textContent = t(loadElapsed() > 19 ? "uxWaitingLong" : "uxWaiting");
   }
 
   function updateLoadElapsed() {
@@ -1876,7 +1997,7 @@
     return new Promise(resolve => {
       if (token !== loadToken || !readingLoading || readingLoading.hidden) { resolve(); return; }
       // 真实接口可能毫秒级返回，给「取象」留出可读的最短时长，避免一闪而过
-      const wait = reduced ? 0 : Math.max(0, 3400 - (Date.now() - loadStarted));
+      const wait = reduced ? 0 : Math.max(0, 450 - (Date.now() - loadStarted));
       const ready = () => {
         if (token !== loadToken) { resolve(); return; }
         loadFinished = true;
@@ -1888,7 +2009,7 @@
         setTimeout(() => {
           if (token === loadToken) readingLoading.hidden = true;
           resolve();
-        }, reduced ? 0 : 900);
+        }, reduced ? 0 : 180);
       };
       if (wait) setTimeout(ready, wait); else ready();
     });
@@ -1903,39 +2024,11 @@
   if (readingLoading) readingLoading.addEventListener("click", () => swapLore());
   if (rlDrawBtn) rlDrawBtn.addEventListener("click", swapLore);
 
-  function clearRevealTimers() {
-    revealTimers.forEach(clearTimeout);
-    revealTimers = [];
-  }
-  function finishReveal() {
-    clearRevealTimers();
-    if (!revealActive) return;
-    revealActive = false;
-    readingBody.querySelectorAll(".r-block.pre").forEach(el => {
-      el.classList.remove("pre"); el.classList.add("in");
-    });
-    if (readingTools) readingTools.hidden = false;
-    if (revealSkip) revealSkip.hidden = true;
-  }
   function readingScrollTarget() {
     const wide = window.matchMedia && window.matchMedia("(min-width: 981px)").matches;
     return wide ? readingBody : document.querySelector('.screen[data-screen="reading"]');
   }
-  function scrollReveal(el) {
-    const scroller = readingScrollTarget();
-    if (!scroller) return;
-    const r = el.getBoundingClientRect();
-    const box = scroller.getBoundingClientRect();
-    const margin = 48;
-    if (r.bottom > box.bottom - margin) {
-      scroller.scrollTo({
-        top: scroller.scrollTop + (r.bottom - box.bottom) + margin + 24,
-        behavior: reduced ? "auto" : "smooth"
-      });
-    }
-  }
 
-  /* ---------------- 左侧解读台：问题回显 + 章节导航 ---------------- */
   let outlineItems = [];
   let outlineTick = 0;
   function resetReadingRail() {
@@ -1961,7 +2054,7 @@
     const rows = [];
     Array.from(readingBody.children).forEach(el => {
       let label = "";
-      if (el.classList.contains("tone")) label = t("roOverview");
+      if (el.classList.contains("reading-quick")) label = t("roOverview");
       else if (el.classList.contains("r-card")) {
         const pos = el.querySelector(".pos");
         label = pos ? pos.textContent.trim() : "";
@@ -2015,14 +2108,16 @@
   readingBody.addEventListener("scroll", onReadingScroll, { passive: true });
   // 把整段解读切成 2-3 个短段：先按句末标点断句，再按目标长度合并，避免大段文字糊成一团
   function splitParas(text, target) {
-    const raw = String(text || "").trim();
+    const raw = window.AstraText.plain(text);
     if (!raw) return [];
-    const sentRe = lang === "en"
+    const sourceLang = window.AstraSpeechLanguage.resolveSpeechLanguage(raw, currentReading && currentReading.language || lang);
+    const spaced = !["zh", "ja"].includes(sourceLang);
+    const sentRe = spaced
       ? /[^.!?]+[.!?]+(?:["'）)\]]+)?|[^.!?]+$/g
       : /[^。！？!?；;]+[。！？!?；;]+(?:[」』”’）)]*)?|[^。！？!?；;]+$/g;
     const out = [];
     let cur = "";
-    const joinSep = lang === "en" ? " " : "";
+    const joinSep = spaced ? " " : "";
     raw.split(/\n+/).forEach(chunk => {
       const sents = chunk.match(sentRe) || [];
       sents.forEach(s => {
@@ -2040,73 +2135,64 @@
     return out;
   }
   function renderReading(r, isLive, opts) {
-    const instant = !!(opts && opts.instant);
+    if(window.AstraPinch)refreshGestureModeUI();
+    syncReadingLanguageControls();
     let html = "";
-    let text = "";
-    const sep = lang === "en" ? ". " : "。";
-    const listSep = lang === "en" ? "; " : "；";
     if (r.question) {
       html += '<div class="ask-echo"><span class="ask-echo-tag">' + t("lblYouAsk") + (r.questionTopic || t("tOther")) + '</span>' +
         '<span class="ask-echo-q">' + esc(r.question) + '</span></div>';
-      text += t("lblYouAskSpeech") + r.question + sep;
     }
-    html += '<div class="tone">' + esc(r.tone) + "</div>";
-    text += r.tone + sep;
+    html += '<section class="reading-quick"><p class="reading-eyebrow">' + t("uxOracleOverview") + '</p>' +
+      '<h2 class="tone">' + esc(r.tone) + '</h2>' +
+      '<p class="reading-intro">' + esc((r.synthesis.match(/[^。！？.!?]+[。！？.!?]/u) || [r.synthesis])[0]) + '</p>' +
+      '<p class="reading-next"><span>' + t("uxFirstStep") + '</span>' + esc(r.actions && r.actions[0] || r.closing) + '</p></section>';
     (r.readings || []).forEach(rr => {
-      const paras = splitParas(rr.text, lang === "en" ? 210 : 82);
+      const paras = splitParas(rr.text, currentReading && currentReading.language === "en" ? 210 : 82);
       html += '<div class="r-card"><div class="pos"><span>' + esc(rr.position) + '</span></div>' +
         '<div class="cname">' + esc(rr.card) + '</div><div class="txt">' +
         paras.map((p, i) => '<p' + (i ? "" : ' class="lead"') + ">" + esc(p) + "</p>").join("") +
         "</div></div>";
-      text += rr.position + (lang === "en" ? ", " : "，") + rr.card + sep + rr.text + " ";
     });
-    const synParas = splitParas(r.synthesis, lang === "en" ? 240 : 96);
+    if (currentReading && currentReading.type === "gua" && Array.isArray(currentReading.data.lines) && currentReading.data.lines.length === 6) {
+      const values = currentReading.data.lines;
+      const seen = new Set();
+      (Array.isArray(r.lineReadings) ? r.lineReadings : []).forEach(row => {
+        if (!row || !Number.isInteger(row.position) || row.position < 1 || row.position > 6 || ![6, 9].includes(values[row.position - 1]) || seen.has(row.position) || typeof row.text !== "string" || !row.text.trim()) return;
+        seen.add(row.position);
+        const originalValue = values[row.position - 1], changedValue = originalValue === 6 ? 7 : 8;
+        const position = lang === "en" ? "Moving line " + row.position : ["初", "二", "三", "四", "五", "上"][row.position - 1] + "爻";
+        html += '<article class="r-card line-reading" data-reading-line="' + row.position + '"><div class="pos"><span>' + esc(position) + '</span></div><div class="cname">' + originalValue + ' → ' + changedValue + '</div><div class="txt">' + splitParas(row.text, currentReading.language === "en" ? 210 : 82).map(p => '<p>' + esc(p) + '</p>').join("") + '</div></article>';
+      });
+    }
+    const synParas = splitParas(r.synthesis, currentReading && currentReading.language === "en" ? 240 : 96);
     html += '<div class="synthesis"><div class="block-title">' + t("lblSynthesis") + '</div>' +
       synParas.map((p, i) => '<p' + (i ? "" : ' class="lead"') + ">" + esc(p) + "</p>").join("") + "</div>";
-    text += t("lblSynthesis") + (lang === "en" ? ": " : "：") + r.synthesis + " ";
     html += '<div class="actions-list"><div class="block-title">' + t("lblActions") + '</div><ul>';
     (r.actions || []).forEach((a, i) => html += '<li data-step="' + String(i + 1).padStart(2, "0") + '">' + esc(a) + "</li>");
     html += "</ul></div>";
-    if (r.actions && r.actions.length) text += t("lblActions") + (lang === "en" ? ": " : "：") + r.actions.join(listSep) + sep;
     html += '<div class="closing">' + esc(r.closing) + "</div>";
     html += '<div class="disclaimer">' + t(isLive ? "disclaimerLive" : "disclaimer") + "</div>";
+    document.querySelectorAll('.screen[data-screen="reading"] > .reading-quick').forEach(node => node.remove());
     readingBody.innerHTML = html;
-    currentReadingText = text + r.closing;
+    if (readingPlayer) readingPlayer.setReading(readingBody, { apiAvailable: apiHealthy, sourceLanguage:currentReading?.outputLanguage||currentReading?.r?.outputLanguage });
+    if (window.astraExperience) window.astraExperience.onReading(currentReading);
     if (readingRail) readingRail.hidden = false;
     paintRailQuestion(r);
     buildReadingOutline();
 
-    const blocks = Array.from(readingBody.children);
-    blocks.forEach(el => el.classList.add("r-block"));
-    clearRevealTimers();
-
-    if (instant || reduced) {
-      revealActive = false;
-      readingBody.classList.add("no-anim");
-      blocks.forEach(el => el.classList.add("in"));
-      if (readingTools) readingTools.hidden = false;
-      if (revealSkip) revealSkip.hidden = true;
-      return;
-    }
-    readingBody.classList.remove("no-anim");
-    revealActive = true;
-    if (readingTools) readingTools.hidden = true;
-    if (revealSkip) revealSkip.hidden = false;
-    blocks.forEach(el => el.classList.add("pre"));
-    const base = 1050, gap = 650;
-    blocks.forEach((el, i) => {
-      revealTimers.push(setTimeout(() => {
-        el.classList.remove("pre"); el.classList.add("in");
-        setTimeout(() => el.classList.add("settled"), 900);
-        sfx("tick");
-        scrollReveal(el);
-      }, base + i * gap));
-    });
-    revealTimers.push(setTimeout(finishReveal, base + blocks.length * gap + 300));
+    // Text stays available while audio marks the active paragraph.
+    readingBody.classList.add("no-anim");
+    Array.from(readingBody.children).forEach(node => node.classList.add("r-block", "in"));
+    if (readingTools) readingTools.hidden = false;
+    if (revealSkip) revealSkip.hidden = true;
   }
+
   function showReading(type, data) {
+    const previous=state.screen==="reading"?currentReading:null;
     const qa = readQuestion(type);
-    data = Object.assign({}, data || {}, { question: qa.question, topic: qa.topic });
+    data = Object.assign({}, data || {}, { question: data && data.question != null ? data.question : qa.question, topic: data && data.topic || qa.topic, _outputLanguage:data?._outputLanguage||readingLanguageChoice||window.AstraLocale.get() });
+    stopAudio();
+    document.getElementById("readingRecovery").hidden = true;
     readingTitle.textContent = t(
       type === "tarot" ? "rdTarot" : type === "gua" ? "rdGua" : type === "mansion" ? "rdMansion"
       : type === "rune" ? "rdRune" : type === "oracle" ? "rdOracle" : "rdNumber"
@@ -2123,7 +2209,7 @@
     if (revealSkip) revealSkip.hidden = true;
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     if (soundOn) ensureAudio();                 // 在点击手势内预热音频上下文
-    pendingReading = { type, data };
+    pendingReading = { type, data, previous };
     startReadingLoading(type, data);
     const wait = reduced ? 180 : 260;
     playRevealVeil();
@@ -2137,12 +2223,15 @@
   // 送给模型的 payload 需要自带可核对的名称：模型只负责解读，不负责猜星宿/签文
   function apiPayload(type, data) {
     const p = Object.assign({}, data || {});
-    if (type === "tarot" && Array.isArray(p.cards)) {
+    if (type === "gua" && Array.isArray(p.lines) && p.lines.length === 6) {
+      Object.assign(p, guaReadingFacts(p.lines));
+    } else if (type === "tarot" && Array.isArray(p.cards)) {
+      const spread = tarotConfig(p); p.spreadId = spread.id; p.spreadVersion = spread.version; p.positionIds = spread.keys.slice();
       p.cards = p.cards.map(c => {
         const t = TAROT[c.idx] || [];
         return Object.assign({}, c, {
           name: lang === "en" ? t[2] : t[0],
-          orient: (c.orient === "逆" || c.orient === "rev" || c.orient === 1) ? "reversed" : "upright"
+          orient: tarotReversed(c.orient) ? "reversed" : "upright"
         });
       });
     } else if (type === "mansion") {
@@ -2154,6 +2243,10 @@
       }
     } else if (type === "rune" && Array.isArray(p.runes)) {
       p.runeNames = p.runes.map(i => runeCard(RUNE[i]));
+    } else if (type === "number") {
+      Object.assign(p, numberFacts(p.raw));
+      p.themeIdx = p.symbolIdx; p.symbol = numSymbol(p.symbolIdx); p.theme = numThemeStr(p.themeIdx);
+      p.symbolMeaning = numLens(p.symbolIdx)[0]; p.reflectionQuestion = numLens(p.symbolIdx)[1];
     } else if (type === "oracle") {
       const s = ORACLE[p.sign];
       if (s) {
@@ -2164,16 +2257,22 @@
     }
     return p;
   }
+  let readingAbort = null;
+  let readingFailure = "";
   async function getReading(type, data) {
     const ctrl = new AbortController();
-    const to = setTimeout(() => ctrl.abort(), 28000);
+    if (readingAbort) readingAbort.abort();
+    readingAbort = ctrl;
+    const to = setTimeout(() => ctrl.abort(), 95000);
     try {
-      const res = await fetch(api("/api/reading"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ system: type, lang: lang, payload: apiPayload(type, data) }),
-        signal: ctrl.signal
-      });
+      const requestBody=JSON.stringify({ system: type, lang: lang, outputLanguage:data._outputLanguage||window.AstraLocale.get(), payload: apiPayload(type, data) });
+      let res;
+      for(let attempt=0;attempt<2;attempt++){
+        res=await fetch(api("/api/reading"),{method:"POST",headers:{"Content-Type":"application/json"},body:requestBody,signal:ctrl.signal});
+        if(res.status!==502||attempt||!["ja","ko","fr","es"].includes(data._outputLanguage))break;
+        // Retry a rejected provider draft once with exactly the same draw and language.
+        await res.text();
+      }
       if (!res.ok) throw new Error("HTTP " + res.status);
       const j = await res.json();
       if (!j || !Array.isArray(j.readings) || !j.readings.length ||
@@ -2181,9 +2280,11 @@
           !Array.isArray(j.actions)) throw new Error("bad payload");
       return j;
     } catch (e) {
-      return null;                                // 触发兜底，绝不白屏
+      readingFailure = e.name === "AbortError" ? "timeout" : e.message;
+      return null;
     } finally {
       clearTimeout(to);
+      if (readingAbort === ctrl) readingAbort = null;
     }
   }
   async function fetchReading(type, data, token) {
@@ -2192,18 +2293,39 @@
     try { r = await getReading(type, data); } catch (e) { r = null; }
     if (token !== loadToken) return;            // 期间已发起新的解读请求，丢弃旧结果
     const isLive = !!r;
+    const wanted=data._outputLanguage||lang;
+    if(!r&&pendingReading?.previous&&wanted!==lang){
+      const previous=pendingReading.previous;pendingReading=null;
+      await finishReadingLoading(token);if(token!==loadToken)return;
+      window.astraExperience.bridge.restore(previous);
+      showReadingLanguageStatus("Generation failed. Your previous reading is preserved. Select a language and retry.");return;
+    }
+    if(!r&&["ja","ko","fr","es"].includes(wanted)){
+      await finishReadingLoading(token);if(token!==loadToken)return;
+      currentReading=null;window.__reading=null;stopAudio();
+      vortex.classList.add("hide");readingBody.replaceChildren();renderStage(type,data);
+      document.getElementById("readingBanner").hidden=true;
+      document.getElementById("readingRecovery").hidden=false;
+      document.getElementById("readingRecoveryText").textContent=window.AstraLocale.translate("The reading could not be generated. Your symbols are preserved. Please retry.");
+      showReadingLanguageStatus("");syncReadingLanguageControls();return;
+    }
     if (!r) r = mockReading(type, data);
     else if (r.question && !r.questionTopic) r.questionTopic = topicLabel((data && data.topic) || "other");
     await finishReadingLoading(token);
     if (token !== loadToken) return;
     setReadingBanner(isLive ? "live" : "demo");
-    currentReading = { type, data, r, isLive };
+    if (!r.question && data.question) r.question = data.question;
+    currentReading = { type, data, r, isLive, language: lang, outputLanguage:isLive?(r.outputLanguage||wanted):lang };
+    const recovery = document.getElementById("readingRecovery");
+    recovery.hidden = isLive;
+    document.getElementById("readingRecoveryText").textContent = t(/429/.test(readingFailure) ? "uxQuotaFailure" : "uxDemoFailure");
     pendingReading = null;
     window.__reading = currentReading;
     vortex.classList.add("hide");
     renderStage(type, data);
     renderReading(r, isLive);
-    playRevealMoment();
+    if(!isLive&&wanted!==lang)showReadingLanguageStatus("The requested language could not be generated. This is a sample in "+window.AstraReadingLanguages.names[lang]+".");
+    playChime(); // Keep the finished report clear; visual rituals run during loading.
   }
   let readingBannerMode = "demo";
   function setReadingBanner(mode) { readingBannerMode = mode; refreshReadingBanner(); }
@@ -2217,96 +2339,28 @@
     el.classList.toggle("is-demo", m !== "live");
   }
 
-  /* ---------------- 朗读：StepFun TTS 优先，Web Speech 兜底 ---------------- */
-  let ttsAudio = null;
-  let ttsAbort = null;
-  let ttsSeq = 0;                    // 每次停止/重新朗读自增，丢弃迟到的合成结果
-  function stopAudio() {
-    ttsSeq++;
-    if (ttsAbort) { try { ttsAbort.abort(); } catch (e) {} ttsAbort = null; }
-    if (ttsAudio) { try { ttsAudio.pause(); ttsAudio.src = ""; } catch (e) {} ttsAudio = null; }
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
-    duckBgm(1);
-  }
-  function resetSpeakBtn() {
-    if (!readingSpeak) return;
-    readingSpeak.dataset.on = "0"; readingSpeak.textContent = t("speakPlay");
-  }
-  async function playTts(text, seq) {
-    const ctrl = new AbortController();
-    ttsAbort = ctrl;
-    const to = setTimeout(() => ctrl.abort(), 90000);
-    try {
-      const res = await fetch(api("/api/tts"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, lang }),
-        signal: ctrl.signal
-      });
-      if (!res.ok || seq !== ttsSeq) return false;
-      const blob = await res.blob();
-      if (!blob || blob.size < 1200) return false;   // 过小视为失败
-      if (seq !== ttsSeq) return true;               // 合成期间已退出：丢弃，不播
-      const url = URL.createObjectURL(blob);
-      const a = new Audio(url);
-      ttsAudio = a;
-      const finish = () => {
-        URL.revokeObjectURL(url);
-        if (ttsAudio !== a) return;                  // 已被 stopAudio 接管，别覆盖新状态
-        ttsAudio = null; duckBgm(1); resetSpeakBtn();
-      };
-      a.onended = finish;
-      a.onerror = finish;
-      duckBgm(0.2);                      // 朗读时让 BGM 退到背后
-      a.volume = 0.0001;                 // 140ms 淡入：抹掉 mp3 起播的闷响/爆音
-      await a.play();
-      const t0 = performance.now();
-      const ramp = () => {
-        if (ttsAudio !== a) return;
-        const k = Math.min(1, (performance.now() - t0) / 140);
-        a.volume = 0.0001 + k * k * 0.9999;
-        if (k < 1) requestAnimationFrame(ramp);
-      };
-      requestAnimationFrame(ramp);
-      return true;
-    } catch (e) { return false; }
-    finally { clearTimeout(to); if (ttsAbort === ctrl) ttsAbort = null; }
-  }
-  function speakWeb(text) {
-    if (!("speechSynthesis" in window)) { alert(t("noSpeech")); resetSpeakBtn(); return; }
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = lang === "en" ? "en-US" : "zh-CN"; u.rate = 1.03; u.pitch = 1.0;
-    const vs = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
-    const names = lang === "en"
-      ? ["Microsoft Aria", "Microsoft Jenny", "Google US English", "Samantha"]
-      : ["Microsoft Xiaoxiao", "Microsoft Yunxi", "Microsoft Huihui", "Google 普通话", "Tingting"];
-    const v = names.map(n => vs.find(x => (x.name || "").includes(n))).find(Boolean) ||
-      vs.find(x => (x.lang || "").toLowerCase().startsWith(lang === "en" ? "en" : "zh"));
-    if (v) u.voice = v;
-    u.onend = () => { duckBgm(1); resetSpeakBtn(); };
-    u.onerror = () => { duckBgm(1); resetSpeakBtn(); };
-    window.speechSynthesis.cancel();
-    duckBgm(0.2);
-    window.speechSynthesis.speak(u);
-  }
+  /* Paragraph audio is implemented separately so its state can be tested independently. */
+  let readingPlayer = null;
+  function stopAudio() { if (readingPlayer) readingPlayer.stop(); }
+  function resetSpeakBtn() { if (readingPlayer) readingPlayer.update(); }
   function initReadingSpeak() {
-    if (!readingSpeak) return;
-    readingSpeak.addEventListener("click", async () => {
-      if (readingSpeak.dataset.on === "1") { stopAudio(); resetSpeakBtn(); return; }
-      if (!currentReadingText) return;
-      stopAudio();                       // 取消上一段仍在合成的请求
-      const seq = ttsSeq;
-      readingSpeak.dataset.on = "1"; readingSpeak.textContent = t("ttsLoading");
-      const ok = await playTts(currentReadingText, seq);
-      if (seq !== ttsSeq) return;        // 已退出/切换语言：不再改按钮或兜底朗读
-      if (ok) { readingSpeak.textContent = t("speakStop"); }
-      else { readingSpeak.textContent = t("speakStop"); speakWeb(currentReadingText); }
+    readingPlayer = new window.AstraAudioPlayer({
+      lang: () => lang, speechLang: () => currentReading && (currentReading.outputLanguage||currentReading.r?.outputLanguage||currentReading.language) || lang, endpoint: () => api("/api/tts"), prepare: () => ensureAudio(), duck: factor => duckBgm(factor),
+      scroll: node => {
+        const scroller = readingScrollTarget(); if (!scroller || !node) return;
+        const box = scroller.getBoundingClientRect(), rect = node.getBoundingClientRect();
+        const player = document.getElementById("audioPlayer");
+        const bottom = Math.min(box.bottom, player.hidden ? innerHeight : player.getBoundingClientRect().top - 16);
+        if (rect.top >= box.top + 16 && rect.bottom <= bottom - 16) return;
+        const breathingRoom = Math.max(24, (bottom - box.top - Math.min(rect.height, bottom - box.top)) * .28);
+        scroller.scrollTo({ top: Math.max(0, scroller.scrollTop + rect.top - box.top - breathingRoom), behavior: reduced ? "auto" : "smooth" });
+      }
     });
   }
 
   /* ---------------- 导出星图（合成海报 PNG） ---------------- */
   function heroSrcFor(type, data) {
-    if (type === "tarot" && data.cards && data.cards[1]) return "assets/tarot/" + data.cards[1].idx + ".webp";
+    if (type === "tarot" && data.cards && data.cards.length) return "assets/tarot/" + data.cards[Math.floor(data.cards.length / 2)].idx + ".webp";
     if (type === "gua") return "assets/gua/altar.webp";
     if (type === "mansion") return "assets/mansion/" + mansionBeast(data.idx).code + ".webp";
     if (type === "rune" && data.runes && data.runes.length) return runeVisionSrc(data.runes[Math.floor(data.runes.length / 2)]);
@@ -2424,12 +2478,13 @@
       const hero = heroSrc ? await loadImgSafe(heroSrc) : null;
 
       /* ---- 正文块：先排版测量，保证一字不裁 ---- */
+      const exportFace = cssVar("--font-display");
       const F = {
-        tone: "500 40px 'Noto Serif SC', Georgia, serif",
-        head: "600 33px 'Noto Serif SC', Georgia, serif",
-        body: "400 29px 'Noto Sans SC', sans-serif",
-        item: "400 29px 'Noto Sans SC', sans-serif",
-        close: "500 31px 'Noto Serif SC', Georgia, serif"
+        tone: "500 40px " + exportFace,
+        head: "600 33px " + exportFace,
+        body: "400 29px " + exportFace,
+        item: "400 29px " + exportFace,
+        close: "500 31px " + exportFace
       };
       const LH = { tone: 58, head: 46, body: 42, item: 42, close: 46 };
       const GAP = { tone: 22, head: 6, body: 18, item: 6, close: 0 };
@@ -2468,12 +2523,12 @@
         : type === "rune" ? "rdRune" : type === "oracle" ? "rdOracle" : "rdNumber"
       );
       let highlight = "";
-      if (type === "tarot") highlight = data.cards.map(cc => tarotName(cc.idx) + (cc.orient === "逆" ? (lang === "en" ? " (Rev)" : "（逆）") : "")).join("  ·  ");
-      else if (type === "gua") highlight = guaFullName(data.guaIndex - 1) + "  →  " + guaFullName(data.changeIdx);
+      if (type === "tarot") highlight = data.cards.map(cc => tarotName(cc.idx) + (tarotReversed(cc.orient) ? (lang === "en" ? " (Rev)" : "（逆）") : "")).join("  ·  ");
+      else if (type === "gua") { const facts = guaReadingFacts(data.lines); highlight = facts.name + (facts.isStatic ? " · " + t("guaStaticShort") : "  →  " + facts.changeName); }
       else if (type === "mansion") highlight = mansionFull(MANSION[data.idx]);
       else if (type === "rune") highlight = data.runes.map(ri => runeCard(RUNE[ri])).join("  ·  ");
       else if (type === "oracle") highlight = (lang === "en" ? "Lot " : "第 ") + ORACLE[data.sign].no + (lang === "en" ? " · " : " 签 · ") + oracleLevel(ORACLE[data.sign]);
-      else highlight = data.raw + "  →  " + numSymbol(data.symbolIdx) + " " + numThemeStr(data.themeIdx);
+      else highlight = (data.raw || t("uxHiddenNumber")) + "  →  " + numSymbol(data.symbolIdx) + " " + numThemeStr(data.themeIdx);
       const hlLines = wrapLines(ctx, highlight, W - M * 2);
       const hlTop = heroBottom + 66;
       const hlBottom = hlTop + (hlLines.length - 1) * 52;
@@ -2521,7 +2576,7 @@
       ctx.beginPath(); ctx.moveTo(W / 2 - 150, 162); ctx.lineTo(W / 2 + 150, 162); ctx.stroke();
       ctx.fillStyle = pal.accent2; ctx.font = "500 36px 'Noto Serif SC', Georgia, serif";
       ctx.fillText(title, W / 2, 214);
-      ctx.fillStyle = pal.t3; ctx.font = "400 24px 'Noto Sans SC', sans-serif";
+      ctx.fillStyle = pal.t3; ctx.font = "400 24px " + exportFace;
       const ts = new Date().toLocaleString(lang === "en" ? "en-US" : "zh-CN", { hour12: false });
       ctx.fillText(ts, W / 2, 252);
 
@@ -2581,7 +2636,7 @@
       });
 
       /* ---- 页脚 ---- */
-      ctx.textAlign = "center"; ctx.fillStyle = pal.t3; ctx.font = "400 22px 'Noto Sans SC', sans-serif";
+      ctx.textAlign = "center"; ctx.fillStyle = pal.t3; ctx.font = "400 22px " + exportFace;
       ctx.fillText(t(currentReading.isLive ? "expFooterLive" : "expFooter") + ts, W / 2, H - 52);
       ctx.fillStyle = rgba(pal.accent2, 0.7);
       ctx.beginPath(); ctx.arc(W / 2, H - 88, 3, 0, Math.PI * 2); ctx.fill();
@@ -2614,6 +2669,7 @@
   const shareClose = document.getElementById("shareClose");
   const shareBaseRow = document.getElementById("shareBaseRow");
   const shareBaseInput = document.getElementById("shareBaseInput");
+  let shareGeneration = 0;
 
   function isLocalOrigin() {
     const h = location.hostname || "";
@@ -2648,7 +2704,23 @@
     return out;
   }
   async function makeShareLink() {
-    const payload = { v: 1, t: currentReading.type, d: currentReading.data, r: currentReading.r, l: lang, ts: Date.now() };
+    const payload = JSON.parse(JSON.stringify({ v: 1, t: currentReading.type, d: currentReading.data, r: currentReading.r, l: currentReading.language || lang, uiLocale:window.AstraLocale.get(), ol:currentReading.outputLanguage||currentReading.r?.outputLanguage||currentReading.language||lang, live: !!currentReading.isLive, ts: Date.now() }));
+    if (!document.getElementById("shareIncludeQuestion").checked) {
+      delete payload.d.question; delete payload.d.topic; delete payload.d.optionA; delete payload.d.optionB;
+      delete payload.r.question; delete payload.r.questionTopic;
+      if (payload.t === "number") {
+        const raw = String(payload.d.raw || "");
+        payload.d.raw = ""; payload.d.rawHidden = true;
+        if (payload.r.readings[0]) payload.r.readings[0].card = t("uxHiddenNumber");
+        if (raw.length >= 6) {
+          const redact = value => typeof value === "string" ? value.split(raw).join(t("uxHiddenNumber")) : value;
+          payload.r.tone = redact(payload.r.tone); payload.r.synthesis = redact(payload.r.synthesis); payload.r.closing = redact(payload.r.closing);
+          payload.r.readings.forEach(item => { item.text = redact(item.text); });
+          payload.r.actions = payload.r.actions.map(redact);
+        }
+      }
+    }
+    document.getElementById("sharePreview").textContent = t(document.getElementById("shareIncludeQuestion").checked ? "uxShareWithQuestion" : "uxShareWithoutQuestion");
     const json = JSON.stringify(payload);
     let code = null;
     if (window.CompressionStream) {
@@ -2662,10 +2734,19 @@
     return base ? base + "#s=" + code : "";
   }
   async function decodeShareCode(code) {
+    if (code.length > 150000) throw new Error("share too large");
     let bytes = b64urlDecode(code.slice(1));
     if (code[0] === "z") {
       const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
-      bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+      const reader = stream.getReader();
+      const chunks = []; let size = 0;
+      while (true) {
+        const { done, value } = await reader.read(); if (done) break;
+        size += value.length; if (size > 150000) { await reader.cancel(); throw new Error("share too large"); }
+        chunks.push(value);
+      }
+      bytes = new Uint8Array(size); let offset = 0;
+      chunks.forEach(chunk => { bytes.set(chunk, offset); offset += chunk.length; });
     } else if (code[0] !== "j") throw new Error("bad tag");
     return JSON.parse(new TextDecoder().decode(bytes));
   }
@@ -2674,33 +2755,47 @@
     return type === "tarot" ? "rdTarot" : type === "gua" ? "rdGua" : type === "mansion" ? "rdMansion"
       : type === "rune" ? "rdRune" : type === "oracle" ? "rdOracle" : "rdNumber";
   }
+  function closeShareModal() {
+    shareGeneration++;
+    shareModal.close(); shareModal.hidden = true;
+    document.getElementById("readingShare").focus();
+  }
+  async function refreshShareLink() {
+    const generation = ++shareGeneration;
+    const reading = currentReading;
+    setShareCopyEnabled(false); shareInput.value = t("shareMaking");
+    try {
+      const link = await makeShareLink();
+      if (generation !== shareGeneration || shareModal.hidden || currentReading !== reading) return;
+      shareInput.value = link || t("shareNoBase"); setShareCopyEnabled(!!link);
+    } catch (_) {
+      if (generation === shareGeneration && !shareModal.hidden) shareInput.value = t("shareBad");
+    }
+  }
   async function openShareModal() {
     if (!currentReading || !shareModal) return;
     shareModal.hidden = false;
+    if (!shareModal.open) shareModal.showModal();
+    document.getElementById("shareIncludeQuestion").checked = false;
+    document.getElementById("shareClose").focus();
     if (shareBaseRow) shareBaseRow.hidden = !isLocalOrigin();
     if (shareBaseInput) shareBaseInput.value = getShareBase();
-    if (shareInput) shareInput.value = t("shareMaking");
-    setShareCopyEnabled(false);
-    const u = await makeShareLink();
-    if (!shareInput || shareModal.hidden) return;
-    shareInput.value = u || t("shareNoBase");
-    setShareCopyEnabled(!!u);
+    await refreshShareLink();
     sfx("tick");
   }
   function initReadingShare() {
     const btn = document.getElementById("readingShare");
     if (btn) btn.addEventListener("click", openShareModal);
     if (!shareModal) return;
-    shareModal.addEventListener("click", e => { if (e.target === shareModal) shareModal.hidden = true; });
-    if (shareClose) shareClose.addEventListener("click", () => { shareModal.hidden = true; });
+    shareModal.addEventListener("cancel", () => { shareModal.hidden = true; });
+    document.getElementById("shareIncludeQuestion").addEventListener("change", refreshShareLink);
+    shareModal.addEventListener("click", e => { if (e.target === shareModal) closeShareModal(); });
+    if (shareClose) shareClose.addEventListener("click", () => { closeShareModal(); });
     if (shareBaseInput) {
       const commitBase = async () => {
         const v = shareBaseInput.value.trim();
         try { if (v) localStorage.setItem(SHARE_BASE_KEY, v); else localStorage.removeItem(SHARE_BASE_KEY); } catch (e) {}
-        const u = await makeShareLink();
-        if (!shareInput) return;
-        shareInput.value = u || t("shareNoBase");
-        setShareCopyEnabled(!!u);
+        await refreshShareLink();
       };
       shareBaseInput.addEventListener("change", commitBase);
       shareBaseInput.addEventListener("keydown", e => {
@@ -2716,14 +2811,26 @@
       setTimeout(() => { if (shareCopy) shareCopy.textContent = t("shareCopy"); }, 1600);
     });
   }
+  function validSharedReading(p) {
+    if (!p || !p.r || !p.d || !SHARE_TYPES[p.t] || typeof p.d !== "object" || typeof p.r.tone !== "string" || typeof p.r.synthesis !== "string" || !Array.isArray(p.r.readings) || !p.r.readings.length || p.r.readings.length > (p.t === "tarot" ? 5 : 3) || !Array.isArray(p.r.actions) || p.r.actions.length > 3 || p.r.actions.some(x => typeof x !== "string") || p.r.readings.some(x => !x || typeof x.text !== "string")) return false;
+    const d = p.d, index = (n, max) => Number.isInteger(n) && n >= 0 && n < max;
+    if (p.t === "tarot") return window.AstraTarotSpreads.validate(d).length === 0 && p.r.readings.length === tarotConfig(d).count;
+    if (p.t === "gua") return Array.isArray(d.lines) && d.lines.length === 6 && d.lines.every(n => [6, 7, 8, 9].includes(n)) && index(d.guaIndex - 1, 64) && index(d.changeIdx, 64);
+    if (p.t === "number") return typeof d.raw === "string" && (d.rawHidden === true && d.raw === "" || /^\d{1,9}$/.test(d.raw)) && index(d.symbolIdx, NUMBER_SYMBOLS.length) && index(d.themeIdx, NUMBER_THEME.length);
+    if (p.t === "mansion") return index(d.idx, MANSION.length);
+    if (p.t === "rune") return Array.isArray(d.runes) && d.runes.length === 3 && d.runes.every(n => index(n, RUNE.length));
+    return index(d.sign, ORACLE.length);
+  }
   async function restoreFromShare() {
     const m = location.hash.match(/^#s=([A-Za-z0-9\-_]+)$/);
     if (!m) return;
     let p = null;
     try { p = await decodeShareCode(m[1]); } catch (e) { p = null; }
-    if (!p || !p.r || !p.t || !SHARE_TYPES[p.t]) { alert(t("shareBad")); return; }
-    if (p.l && p.l !== lang) setLang(p.l);
-    currentReading = { type: p.t, data: p.d || {}, r: p.r, isLive: false, shared: true };
+    if (!validSharedReading(p)) { alert(t("shareBad")); return; }
+    if(p.uiLocale) setLang(p.uiLocale);else if(p.l&&p.l!==lang)setLang(p.l);
+    vortex.classList.add("hide");
+    lastModule = p.t;
+    currentReading = { type: p.t, data: p.d || {}, r: p.r, isLive: p.live === true, language: p.l || lang, outputLanguage:p.ol||p.r.outputLanguage||p.l||lang, shared: true };
     window.__reading = currentReading;
     readingTitle.textContent = t(readingTitleKey(p.t));
     switchScreen("reading");
@@ -2797,24 +2904,24 @@
     },
     number: {
       zh: [
-        "我的天赋与短板分别是什么？",
-        "当下的状态，在提醒我什么？",
-        "今年我该抓住怎样的节奏？",
-        "我适合什么样的工作方式？",
-        "这段关系里，我真正需要的是什么？",
-        "我最近为什么总觉得累？",
-        "下一个阶段，我该重点修炼什么？",
-        "我身上最值得被看见的部分是什么？"
+        "最近哪些时刻让我充实，哪些让我疲惫？",
+        "我的日常节律里，哪里需要留白？",
+        "面对变化，我想保留哪一个日常？",
+        "哪一种工作安排更能让我专注？",
+        "这段关系里，我的付出与回应平衡吗？",
+        "我能从一周的状态里观察到什么？",
+        "下个阶段，哪件事值得固定投入？",
+        "哪个小调整能让我更接近想要的生活？"
       ],
       en: [
-        "What are my gifts and blind spots?",
-        "What is my current state trying to tell me?",
-        "What rhythm should I keep this year?",
-        "What kind of work suits me best?",
-        "What do I truly need in a relationship?",
-        "Why have I been feeling so tired?",
-        "What should I focus on growing next?",
-        "What part of me most deserves to be seen?"
+        "Which recent moments left me fulfilled, and which left me tired?",
+        "Where does my daily rhythm need more space?",
+        "Which routine would I keep through a change?",
+        "What kind of work schedule helps me focus?",
+        "Is there a balance between giving and receiving in this relationship?",
+        "What can I learn by observing one week of my life?",
+        "What deserves regular attention in my next chapter?",
+        "What small adjustment would bring my day closer to the life I want?"
       ]
     },
     mansion: {
@@ -2889,8 +2996,8 @@
     return scr ? scr.getAttribute("data-screen") : "";
   }
   function askPool(mod) {
-    const p = QUESTION_POOLS[mod];
-    return p ? (p[lang] || p.zh) : [];
+    const p = mod==="tarot"&&tarotConfig().questions?{zh:tarotConfig().questions[0],en:tarotConfig().questions[1]}:QUESTION_POOLS[mod];
+    return p ? (p[lang] || p.zh).map(text=>window.AstraLocale.translate(text)) : [];
   }
   function askInputOf(mod) {
     const scr = document.querySelector('[data-screen="' + mod + '"]');
@@ -2934,7 +3041,7 @@
       seedMap[ID_SEED[k].en] = ID_SEED[k].zh;
     });
     document.querySelectorAll("[data-ask-chips]").forEach(box => {
-      const mod = askModule(box), p = QUESTION_POOLS[mod];
+      const mod = askModule(box), p = mod==="tarot"&&tarotConfig().questions?{zh:tarotConfig().questions[0],en:tarotConfig().questions[1]}:QUESTION_POOLS[mod];
       if (!p) return;
       const scr = box.closest(".screen");
       const input = scr && scr.querySelector(".ask-input");
@@ -2976,31 +3083,37 @@
       sfx("tick");
     });
   });
-  const journey = { stage: "gate", identity: null, entered: false, busy: false };
+  const journey = { stage: "gate", identity: null, entered: false, roleChosen: false, busy: false };
   const gateScene = document.getElementById("gateScene");
   const idChip = document.getElementById("idChip");
 
+  let journeyStageTimer = 0;
   function setStage(name, instant) {
-    if (journey.stage === name) return;
+    clearTimeout(journeyStageTimer);
+    if (journey.stage === name) {
+      document.querySelectorAll(".j-stage.is-leaving").forEach(node => node.classList.remove("is-leaving"));
+      return;
+    }
     const apply = () => {
       document.querySelectorAll(".j-stage").forEach(s => s.classList.remove("is-on", "is-leaving"));
       const el = document.querySelector('.j-stage[data-stage="' + name + '"]');
       if (el) el.classList.add("is-on");
       journey.stage = name;
+      const heading = el && el.querySelector(".stage-title, .hero-title");
+      if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
       const scroller = document.querySelector('.screen[data-screen="home"]');
       if (scroller) scroller.scrollTop = 0;
     };
     if (instant || reduced) { apply(); return; }
     const cur = document.querySelector('.j-stage[data-stage="' + journey.stage + '"]');
     if (cur) cur.classList.add("is-leaving");
-    setTimeout(apply, 480);
+    journeyStageTimer = setTimeout(apply, 480);
   }
   function applyFated() {
-    document.querySelectorAll(".door").forEach(d => {
-      const fated = !!journey.identity && IDENTITIES[journey.identity].door === d.getAttribute("data-door");
-      d.classList.toggle("is-fated", fated);
-      const star = d.querySelector(".door-star");
-      if (star) star.hidden = !fated;
+    document.querySelectorAll(".door").forEach(door => {
+      door.classList.remove("is-fated", "is-recommended");
+      const star = door.querySelector(".door-star");
+      if (star) star.hidden = true;
     });
   }
   /* 星径中央的人物跟着所选身份换：未选身份时回到默认旅人 */
@@ -3010,6 +3123,11 @@
   }
   function updateIdChip() {
     applyIdentityFigure();
+    const guidance = document.getElementById("pathGuidance");
+    if (guidance) {
+      const question = document.getElementById("entryQuestion").value.trim();
+      guidance.textContent = (journey.identity ? t("uxRoleDoor", [t(IDENTITIES[journey.identity].key)]) : t("uxChooseDoor")) + (question ? " · " + question : "");
+    }
     if (!idChip) return;
     if (journey.identity) { idChip.hidden = false; idChip.textContent = t("idChipPre") + t(IDENTITIES[journey.identity].key); }
     else if (journey.entered) { idChip.hidden = false; idChip.textContent = t("idChipNone"); }
@@ -3021,31 +3139,193 @@
     if (el && seed) {
       // 换身份后旧身份写进去的种子问题要跟着换；用户自己输入的问题不动
       const v = el.value.trim();
-      if (!v || ALL_ID_SEEDS.has(v)) el.value = seed[lang] || seed.zh;
+      if (!v || ALL_ID_SEEDS.has(v)) {
+        el.value = seed[lang] || seed.zh;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      }
     }
     syncAskChips(mod);
   }
-  let gateAutoTimer = 0;
+  let gateAutoTimer = 0, gateOpenTimer = 0, gateSoundTimer = 0, identityPickTimer = 0;
+  let gateFlight = null, gateFlightAnimation = null, gateCleanupTimer = 0;
+  let identityFlight = null, identityFlightAnimation = null, identityCleanupTimer = 0, identitySoundTimer = 0;
+  let doorFlight = null, doorFlightAnimation = null, doorOpenTimer = 0, doorSoundTimer = 0, doorCleanupTimer = 0, doorRandomTimer = 0;
+  function clearGateFlight() {
+    clearTimeout(gateCleanupTimer);
+    if (gateFlightAnimation) gateFlightAnimation.cancel();
+    gateFlightAnimation = null;
+    if (gateFlight) gateFlight.remove();
+    gateFlight = null;
+    document.body.classList.remove("is-entering-gate");
+    gateScene.classList.remove("is-open");
+    gateScene.removeAttribute("aria-busy");
+    ["startGuided", "exploreDoors"].forEach(id => { document.getElementById(id).disabled = false; });
+  }
+  function bringGateForward() {
+    const box = gateScene.getBoundingClientRect();
+    clearGateFlight();
+    gateFlight = document.createElement("div");
+    gateFlight.className = "gate-transition";
+    gateFlight.setAttribute("aria-hidden", "true");
+    gateFlight.innerHTML = '<div class="gate-transition-scrim"></div><div class="gate-transition-light"></div>';
+    const door = gateScene.cloneNode(true);
+    door.removeAttribute("id"); door.removeAttribute("role"); door.removeAttribute("tabindex"); door.removeAttribute("aria-label");
+    door.classList.remove("is-open"); door.classList.add("gate-flight");
+    door.querySelector(".gate-bloom").remove();
+    Object.assign(door.style, { left: box.left + "px", top: box.top + "px", width: box.width + "px", height: box.height + "px" });
+    gateFlight.appendChild(door); document.body.appendChild(gateFlight);
+    document.body.classList.add("is-entering-gate");
+    gateScene.setAttribute("aria-busy", "true");
+    ["startGuided", "exploreDoors"].forEach(id => { document.getElementById(id).disabled = true; });
+    const dx = innerWidth / 2 - box.left - box.width / 2;
+    const dy = innerHeight / 2 - box.top - box.height / 2;
+    const near = Math.min(innerWidth * .8, innerHeight * .7) / box.width;
+    const through = Math.max(innerWidth * 1.15, innerHeight) / box.width;
+    const at = scale => `translate(${dx}px, ${dy}px) scale(${scale})`;
+    gateFlightAnimation = door.animate([
+      { transform: "translate(0, 0) scale(1)", opacity: 1 },
+      { offset: .42, transform: at(near), opacity: 1 },
+      { offset: .82, transform: at(through), opacity: 1 },
+      { transform: at(through * 1.08), opacity: 0 }
+    ], { duration: 1900, easing: "cubic-bezier(.45,0,.18,1)", fill: "forwards" });
+    return door;
+  }
+  function clearIdentityFlight() {
+    clearTimeout(identityCleanupTimer);
+    if (identityFlightAnimation) identityFlightAnimation.cancel();
+    identityFlightAnimation = null;
+    if (identityFlight) identityFlight.remove();
+    identityFlight = null;
+    document.body.classList.remove("is-entering-identity");
+    document.querySelectorAll(".id-card").forEach(card => {
+      card.disabled = false; card.classList.remove("is-picked"); card.removeAttribute("aria-busy");
+    });
+    document.getElementById("idSkip").disabled = false;
+  }
+  function bringIdentityForward(card) {
+    const emblem = card.querySelector(".id-emblem");
+    const box = emblem.getBoundingClientRect();
+    clearGateFlight(); clearIdentityFlight();
+    identityFlight = document.createElement("div");
+    identityFlight.className = "identity-transition";
+    identityFlight.dataset.identity = card.dataset.id;
+    identityFlight.setAttribute("aria-hidden", "true");
+    identityFlight.innerHTML = '<div class="gate-transition-scrim"></div><div class="identity-transition-light"></div><div class="identity-transition-stars"></div>';
+    const stars = identityFlight.querySelector(".identity-transition-stars");
+    for (let i = 0; i < 14; i++) {
+      const star = document.createElement("i");
+      star.style.setProperty("--spark-angle", (i * 360 / 14) + "deg");
+      star.style.setProperty("--spark-delay", ((i % 3) * .06) + "s");
+      stars.appendChild(star);
+    }
+    const traveler = emblem.cloneNode(true);
+    traveler.classList.add("identity-flight");
+    Object.assign(traveler.style, { left: box.left + "px", top: box.top + "px", width: box.width + "px", height: box.height + "px" });
+    identityFlight.appendChild(traveler);
+    const caption = document.createElement("div");
+    caption.className = "identity-transition-caption";
+    const name = document.createElement("b"), line = document.createElement("p");
+    name.textContent = card.querySelector(".id-name").textContent;
+    line.textContent = card.querySelector(".id-line").textContent;
+    caption.append(name, line); identityFlight.appendChild(caption);
+    document.body.appendChild(identityFlight);
+    document.body.classList.add("is-entering-identity");
+    const dx = innerWidth / 2 - box.left - box.width / 2;
+    const dy = innerHeight * .44 - box.top - box.height / 2;
+    const near = Math.min(innerWidth * .8 / box.width, innerHeight * .7 / box.height);
+    caption.style.top = Math.min(innerHeight - 84, innerHeight * .44 + box.height * near / 2 + 20) + "px";
+    const through = Math.max(innerWidth, innerHeight * .9) / box.width;
+    const at = scale => `translate(${dx}px, ${dy}px) scale(${scale})`;
+    identityFlightAnimation = traveler.animate([
+      { transform: "translate(0, 0) scale(1)", opacity: 1, easing: "cubic-bezier(.2,.65,.3,1)" },
+      { offset: .43, transform: at(near), opacity: 1, easing: "ease-out" },
+      { offset: .72, transform: at(near * 1.035), opacity: 1, easing: "ease-in" },
+      { transform: at(through), opacity: 0 }
+    ], { duration: 1750, fill: "forwards" });
+  }
+  function clearDoorFlight() {
+    clearTimeout(doorCleanupTimer);
+    if (doorFlightAnimation) doorFlightAnimation.cancel();
+    doorFlightAnimation = null;
+    if (doorFlight) doorFlight.remove();
+    doorFlight = null;
+    document.body.classList.remove("is-entering-door");
+    document.querySelectorAll(".door-row .door").forEach(door => {
+      door.disabled = false; door.classList.remove("is-open", "is-lit"); door.removeAttribute("aria-busy");
+    });
+    document.getElementById("doorRandom").disabled = false;
+  }
+  function bringDoorForward(button) {
+    const arch = button.querySelector(".door-arch");
+    const box = arch.getBoundingClientRect();
+    const mod = button.dataset.door;
+    clearIdentityFlight(); clearDoorFlight();
+    const passages = {
+      tarot: ["翻开三张牌，照见来路、此刻与前方。", "Three cards illuminate the past, the present and what lies ahead."],
+      gua: ["铜钱落定，在阴阳之间辨认进退。", "Let the coins settle; reflect on change and timing."],
+      number: ["让一串数字，织成属于你的星图。", "Let a number become a constellation of your own."],
+      mansion: ["循着星宿的微光，换一个角度看见自己。", "Follow the starlight to see yourself from a different angle."],
+      rune: ["三枚符石落下，让古老的象征开口。", "Cast three runes and listen to their ancient symbols."],
+      oracle: ["一签一首诗，留给此刻一线回响。", "One lot, one poem, an echo for this moment."]
+    };
+    doorFlight = document.createElement("div");
+    doorFlight.className = "door-transition"; doorFlight.dataset.door = mod;
+    doorFlight.setAttribute("aria-hidden", "true");
+    doorFlight.style.setProperty("--door-rgb", getComputedStyle(button).getPropertyValue("--door-rgb"));
+    doorFlight.innerHTML = '<div class="gate-transition-scrim"></div><div class="door-transition-light"></div><div class="door-transition-orbit"></div>';
+    const portal = document.createElement("div");
+    portal.className = "door door-flight"; portal.dataset.door = mod;
+    portal.appendChild(arch.cloneNode(true));
+    Object.assign(portal.style, { left: box.left + "px", top: box.top + "px", width: box.width + "px", height: box.height + "px" });
+    doorFlight.appendChild(portal);
+    const caption = document.createElement("div"); caption.className = "door-transition-caption";
+    const label = document.createElement("small"), name = document.createElement("h2"), line = document.createElement("p"), thread = document.createElement("i");
+    label.textContent = lang === "en" ? "THE GATE ANSWERS" : "星门已应答";
+    name.textContent = button.querySelector(".door-plate b").textContent;
+    line.textContent = passages[mod][lang === "en" ? 1 : 0];
+    caption.append(label, name, line, thread); doorFlight.appendChild(caption);
+    document.body.appendChild(doorFlight); document.body.classList.add("is-entering-door");
+    const dx = innerWidth / 2 - box.left - box.width / 2;
+    const dy = innerHeight * .44 - box.top - box.height / 2;
+    const near = Math.min(innerWidth * .8, innerHeight * .65) / box.height;
+    const through = Math.max(innerWidth * 1.15 / box.width, innerHeight / box.height);
+    const at = scale => `translate(${dx}px, ${dy}px) scale(${scale})`;
+    doorFlightAnimation = portal.animate([
+      { transform: "translate(0, 0) scale(1)", opacity: 1, easing: "cubic-bezier(.22,.65,.3,1)" },
+      { offset: .44, transform: at(near), opacity: 1, easing: "ease-in" },
+      { offset: .8, transform: at(through * .8), opacity: .9 },
+      { transform: at(through), opacity: 0 }
+    ], { duration: 1800, fill: "forwards" });
+    return portal;
+  }
+  function cancelJourneyTransition() {
+    clearTimeout(gateOpenTimer); clearTimeout(gateSoundTimer); clearTimeout(identityPickTimer); clearTimeout(identitySoundTimer);
+    clearTimeout(doorOpenTimer); clearTimeout(doorSoundTimer); clearInterval(doorRandomTimer); doorRandomTimer = 0;
+    clearGateFlight(); clearIdentityFlight(); clearDoorFlight();
+    journey.busy = false;
+  }
   function armGateAuto() {
     clearTimeout(gateAutoTimer);
-    if (journey.entered || journey.busy || journey.stage !== "gate") return;
-    gateAutoTimer = setTimeout(() => {
-      if (state.screen === "home" && journey.stage === "gate" && !journey.busy) openGate(false);
-    }, 1100);
+    // The visitor controls when to leave the introduction; typing is never interrupted.
   }
-  function openGate(byUser) {
+  function openGate(byUser, skipIdentity = false) {
     if (journey.busy || journey.entered || journey.stage !== "gate") return;
     clearTimeout(gateAutoTimer);
     journey.busy = true;
     if (byUser) sfx("knock");
-    gateScene.classList.add("is-open");
+    const door = reduced ? gateScene : bringGateForward();
     if (window.__particles) window.__particles.pulseRipple();
-    setTimeout(() => { if (byUser) sfx("whoosh"); }, 720);
-    setTimeout(() => {
+    gateSoundTimer = setTimeout(() => { door.classList.add("is-open"); if (byUser) sfx("whoosh"); }, reduced ? 0 : 600);
+    gateOpenTimer = setTimeout(() => {
       journey.busy = false;
       journey.entered = true;
-      setStage("identity");
-    }, 2800);
+      journey.roleChosen = skipIdentity;
+      if (skipIdentity) { journey.identity = null; applyFated(); }
+      updateIdChip();
+      setStage(skipIdentity ? "path" : "identity", true);
+      if (gateFlight) gateFlight.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" });
+      gateCleanupTimer = setTimeout(clearGateFlight, reduced ? 0 : 300);
+    }, reduced ? 160 : 1900);
   }
   if (gateScene) {
     gateScene.addEventListener("click", () => openGate(true));
@@ -3056,27 +3336,37 @@
   document.querySelectorAll(".id-card").forEach(btn => btn.addEventListener("click", () => {
     if (journey.busy) return;
     journey.busy = true;
-    journey.identity = btn.getAttribute("data-id");
+    const identity = btn.getAttribute("data-id");
+    if (!reduced) bringIdentityForward(btn);
     btn.classList.add("is-picked");
+    btn.setAttribute("aria-busy", "true");
+    document.querySelectorAll(".id-card").forEach(card => { card.disabled = true; });
+    document.getElementById("idSkip").disabled = true;
     sfx("chime");
     if (window.__particles) window.__particles.pulseRipple();
-    setTimeout(() => {
-      btn.classList.remove("is-picked");
+    if (!reduced) identitySoundTimer = setTimeout(() => sfx("whoosh"), 1250);
+    identityPickTimer = setTimeout(() => {
+      journey.identity = identity;
+      journey.roleChosen = true;
       journey.busy = false;
-      applyFated(); updateIdChip(); setStage("path");
-    }, 900);
+      applyFated(); updateIdChip(); setStage("path", true);
+      if (identityFlight) identityFlight.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" });
+      identityCleanupTimer = setTimeout(clearIdentityFlight, reduced ? 0 : 300);
+    }, reduced ? 160 : 1750);
   }));
   const idSkip = document.getElementById("idSkip");
   if (idSkip) idSkip.addEventListener("click", () => {
     if (journey.busy) return;
     journey.identity = null;
+    journey.roleChosen = true;
     applyFated(); updateIdChip(); setStage("path");
   });
   const idBack = document.getElementById("idBack");
   if (idBack) idBack.addEventListener("click", () => {
-    if (journey.busy) return;
+    cancelJourneyTransition();
     clearTimeout(gateAutoTimer);          // 手动退回时不再自动开门，让门保持可点击
     journey.entered = false;
+    journey.roleChosen = false;
     journey.identity = null;
     gateScene.classList.remove("is-open");
     applyFated(); updateIdChip();
@@ -3086,15 +3376,20 @@
     if (journey.busy) return;
     journey.busy = true;
     const mod = btn.getAttribute("data-door");
-    seedQuestion(mod);
-    btn.classList.add("is-open");
+    const portal = reduced ? null : bringDoorForward(btn);
+    btn.setAttribute("aria-busy", "true");
+    document.querySelectorAll(".door-row .door").forEach(door => { door.disabled = true; });
+    document.getElementById("doorRandom").disabled = true;
     sfx("knock");
-    setTimeout(() => sfx("whoosh"), 700);
-    setTimeout(() => {
-      btn.classList.remove("is-open");
+    if (window.__particles) window.__particles.pulseRipple();
+    doorSoundTimer = setTimeout(() => { if (portal) portal.classList.add("is-open"); sfx("whoosh"); }, reduced ? 0 : 650);
+    doorOpenTimer = setTimeout(() => {
       journey.busy = false;
-      switchScreen(mod);
-    }, 1300);
+      seedQuestion(mod);
+      switchScreen(mod, { portal: true });
+      if (doorFlight) doorFlight.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" });
+      doorCleanupTimer = setTimeout(clearDoorFlight, reduced ? 0 : 300);
+    }, reduced ? 160 : 1800);
   }));
   const doorRandom = document.getElementById("doorRandom");
   if (doorRandom) doorRandom.addEventListener("click", () => {
@@ -3103,12 +3398,13 @@
     const doors = Array.from(document.querySelectorAll(".door"));
     let i = Math.floor(Math.random() * doors.length);
     let steps = 10 + Math.floor(Math.random() * 5);
-    const spin = setInterval(() => {
+    doorRandom.disabled = true;
+    doorRandomTimer = setInterval(() => {
       doors.forEach((d, k) => d.classList.toggle("is-lit", k === i));
       sfx("tick");
       steps--;
       if (steps <= 0) {
-        clearInterval(spin);
+        clearInterval(doorRandomTimer); doorRandomTimer = 0;
         const pick = doors[i];
         doors.forEach(d => d.classList.remove("is-lit"));
         journey.busy = false;
@@ -3117,47 +3413,64 @@
     }, 135);
   });
   const pathBack = document.getElementById("pathBack");
-  if (pathBack) pathBack.addEventListener("click", () => setStage("identity"));
+  if (pathBack) pathBack.addEventListener("click", () => { cancelJourneyTransition(); setStage("identity"); });
 
   /* ---------------- 健康探测 + 首页星象引言 ---------------- */
+  let apiFeatures = {};
   let apiHealthy = null;                          // null=未知，true/false=已探测
   async function checkHealth() {
     try {
       const res = await fetch(api("/api/health"));
       const j = await res.json();
       apiHealthy = !!(j && j.ok && j.hasKey);
+      apiFeatures = j && j.features || {};
     } catch (e) { apiHealthy = false; }
     refreshHomeNote();
+    if (window.astraExperience) window.astraExperience.refreshUsage();
   }
   function refreshHomeNote() {
     ["homeNote", "pathNote"].forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
-      if (apiHealthy === true) { el.textContent = t("liveNote"); el.classList.add("is-live"); }
-      else if (apiHealthy === false) { el.textContent = t("demoNote"); el.classList.remove("is-live"); }
+      if (apiHealthy === true) { el.textContent = t(id === "homeNote" ? "uxHomeLive" : "liveNote"); el.classList.add("is-live"); }
+      else if (apiHealthy === false) { el.textContent = t(id === "homeNote" ? "uxHomeDemo" : "demoNote"); el.classList.remove("is-live"); }
       // apiHealthy === null 时保留静态 i18n 默认文案
     });
   }
   async function loadHeroQuote() {
     const el = document.getElementById("heroQuote");
     if (!el) return;
+    if(!["zh","en"].includes(window.AstraLocale.get())){el.hidden=true;return;}
+    const quoteLocale=window.AstraLocale.get();
     try {
       const res = await fetch(api("/api/quote?lang=" + encodeURIComponent(lang)));
       const j = await res.json();
+      if(window.AstraLocale.get()!==quoteLocale)return;
       if (j && j.quote) { el.textContent = "“" + j.quote + "”"; el.hidden = false; }
     } catch (e) { /* 保持隐藏，降级静默 */ }
   }
 
   /* ============================================================
      声音层：主总线 + 混响 + 交互音效（全部 Web Audio 合成，不依赖音频文件）
-     - 音效默认开启；BGM 独立开关
+     - 音效与 BGM 默认开启；浏览器允许声音后播放，并记住用户手动开关偏好
      - 所有声音经 masterBus，并可按比例送入 convolver 混响，避免「干声贴脸」
      ============================================================ */
   const revealVeil = document.getElementById("revealVeil");
   const rvc = revealVeil ? revealVeil.getContext("2d") : null;
   let soundOn = true;
+  try { const saved = localStorage.getItem("astra.sound"); if (saved !== null) soundOn = saved === "1"; } catch (_) {}
   const soundToggle = document.getElementById("soundToggle");
   let audioCtx = null, masterBus = null, reverb = null, reverbSend = null, noiseBuf = null;
+  let audioMeter = null, audioSamples = null;
+  function reportAudioState() {
+    const root = document.documentElement;
+    root.dataset.audioContext = audioCtx ? audioCtx.state : "uninitialized";
+    if (audioMeter && audioSamples) {
+      audioMeter.getFloatTimeDomainData(audioSamples);
+      let power = 0; for (const sample of audioSamples) power += sample * sample;
+      root.dataset.audioLevel = String(Math.sqrt(power / audioSamples.length).toFixed(5));
+    }
+  }
 
   function makeNoiseBuffer(ac) {
     const len = ac.sampleRate * 2;
@@ -3180,6 +3493,7 @@
       try {
         const AC = window.AudioContext || window.webkitAudioContext;
         audioCtx = new AC();
+        audioCtx.addEventListener("statechange", reportAudioState);
         masterBus = audioCtx.createGain(); masterBus.gain.value = 0.9;
         const mhp = audioCtx.createBiquadFilter(); mhp.type = "highpass"; mhp.frequency.value = 30; mhp.Q.value = 0.3;
         masterBus.connect(mhp); mhp.connect(audioCtx.destination);   // 主输出低切：挡掉次声 rumble
@@ -3189,9 +3503,13 @@
         reverbSend = audioCtx.createGain(); reverbSend.gain.value = 0.5;
         reverbSend.connect(reverb); reverb.connect(rhp); rhp.connect(wet); wet.connect(masterBus);   // 混响回程高通：不留低频嗡嗡尾
         noiseBuf = makeNoiseBuffer(audioCtx);
-      } catch (e) { audioCtx = null; }
+        audioMeter = audioCtx.createAnalyser(); audioMeter.fftSize = 2048;
+        audioSamples = new Float32Array(audioMeter.fftSize); mhp.connect(audioMeter);
+        setInterval(reportAudioState, 500);
+      } catch (e) { document.documentElement.dataset.audioError = e.name; audioCtx = null; }
     }
-    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+    if (audioCtx && audioCtx.state !== "running" && audioCtx.state !== "closed") audioCtx.resume().then(reportAudioState).catch(e => { document.documentElement.dataset.audioError = e.name; reportAudioState(); });
+    reportAudioState();
     return audioCtx;
   }
   /* 单音：短起音 + 长衰减；wet 控制混响送量 */
@@ -3401,10 +3719,11 @@
   }
   if (soundToggle) {
     soundToggle.addEventListener("click", () => {
-      soundOn = !soundOn;
+      soundOn = !soundOn; try { localStorage.setItem("astra.sound", soundOn ? "1" : "0"); } catch (_) {}
       ensureAudio();                         // 在用户手势内创建/恢复 AudioContext
       soundToggle.textContent = soundOn ? t("soundOn") : t("soundOff");
       soundToggle.classList.toggle("is-on", soundOn);
+      soundToggle.setAttribute("aria-pressed", String(soundOn));
       if (soundOn) sfx("tick");
     });
   }
@@ -3416,6 +3735,7 @@
      - 揭晓结果时提亮并加一串高音星点，随后回到 ambient
      ============================================================ */
   let bgmOn = true, bgmStarted = false;
+  try { const saved = localStorage.getItem("astra.bgm"); if (saved !== null) bgmOn = saved === "1"; } catch (_) {}
   let bgmGain = null, bgmDuck = null, bgmFilter = null, bgmLfo = null;
   let bgmTimer = null, bgmStopTimer = 0, bgmRevealTimer = 0;
   let bgmNextTime = 0, bgmStep = 0;
@@ -3423,6 +3743,19 @@
   const BGM_STEP = 60 / BGM_BPM / 2;          // 八分音符
   const BGM_STEPS = 128;                       // 16 小节（A/B 两段）一循环
   const BGM_LEVEL = 1.6;
+  let bgmVolume = .6;
+  try { const saved = Number(localStorage.getItem("astra.bgmVolume")); if (saved >= 1 && saved <= 100) bgmVolume = saved / 100; } catch (_) {}
+  function setBgmVolume(value) {
+    bgmVolume = Math.max(.01, Math.min(1, (Number(value) || 1) / 100));
+    const percent = Math.round(bgmVolume * 100);
+    try { localStorage.setItem("astra.bgmVolume", String(percent)); } catch (_) {}
+    document.querySelectorAll("[data-bgm-volume]").forEach(input => { input.value = percent; });
+    document.querySelectorAll("[data-bgm-value]").forEach(output => { output.textContent = percent + "%"; });
+    if (bgmOn && bgmGain && audioCtx) bgmGain.gain.setTargetAtTime(BGM_LEVEL * bgmVolume, audioCtx.currentTime, .25);
+  }
+  document.querySelectorAll("[data-bgm-volume]").forEach(input => input.addEventListener("input", e => setBgmVolume(e.target.value)));
+  document.querySelectorAll("[data-bgm-volume]").forEach(input => { input.value = Math.round(bgmVolume * 100); });
+  document.querySelectorAll("[data-bgm-value]").forEach(output => { output.textContent = Math.round(bgmVolume * 100) + "%"; });
   // 和弦：D – A/C# – Bm – G；每两小节一换
   const BGM_CHORDS = [
     { bass: 146.83, arp: [293.66, 369.99, 440.00, 587.33] },  // D
@@ -3446,7 +3779,7 @@
         bgmNextTime = ac.currentTime + 0.08;
         bgmTick(); bgmTimer = setInterval(bgmTick, 70);
       }
-      bgmGain.gain.setTargetAtTime(BGM_LEVEL, ac.currentTime, 0.5);
+      bgmGain.gain.setTargetAtTime(BGM_LEVEL * bgmVolume, ac.currentTime, 0.5);
       return;
     }
     bgmStarted = true;
@@ -3455,7 +3788,7 @@
     bgmGain.connect(bgmDuck); bgmDuck.connect(masterBus);
     const wet = ac.createGain(); wet.gain.value = 0.16;
     bgmDuck.connect(wet); wet.connect(reverbSend);
-    bgmGain.gain.linearRampToValueAtTime(BGM_LEVEL, ac.currentTime + 2.4);
+    bgmGain.gain.linearRampToValueAtTime(BGM_LEVEL * bgmVolume, ac.currentTime + 2.4);
     bgmFilter = ac.createBiquadFilter(); bgmFilter.type = "lowpass";
     bgmFilter.frequency.value = 6000; bgmFilter.Q.value = 0.35;
     bgmFilter.connect(bgmGain);
@@ -3546,7 +3879,7 @@
     const ac = audioCtx;
     bgmGain.gain.cancelScheduledValues(ac.currentTime);
     if (scene === "reveal") {
-      bgmGain.gain.setTargetAtTime(2.3, ac.currentTime, 0.5);
+      bgmGain.gain.setTargetAtTime(2.3 * bgmVolume, ac.currentTime, 0.5);
       sfx("bell");
       [1174.66, 1760.00, 1479.98].forEach((f, i) => {
         bgmNote(f, ac.currentTime + 0.04 + i * 0.14, 0.019, i % 2 ? 0.3 : -0.3, 2.6);
@@ -3554,7 +3887,7 @@
       clearTimeout(bgmRevealTimer);
       bgmRevealTimer = setTimeout(() => setBgmScene("ambient"), 4600);
     } else {
-      bgmGain.gain.setTargetAtTime(BGM_LEVEL, ac.currentTime, 1.2);
+      bgmGain.gain.setTargetAtTime(BGM_LEVEL * bgmVolume, ac.currentTime, 1.2);
     }
   }
   function bgmReveal() { if (bgmOn) setBgmScene("reveal"); }
@@ -3573,25 +3906,36 @@
     }, 800);
   }
   // 首次用户手势内启动 BGM（满足浏览器自动播放策略）
-  document.addEventListener("pointerdown", () => { if (bgmOn && !bgmStarted) startBgm(); }, { passive: true });
+  function awakenAudio(event) {
+    if (event && event.target.closest && event.target.closest("#bgmToggle")) return;
+    if (bgmOn) {
+      if (!bgmStarted) startBgm();
+      else ensureAudio();
+    }
+  }
+  document.addEventListener("pointerdown", awakenAudio, { passive: true });
+  document.addEventListener("click", awakenAudio, { passive: true });
+  document.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && !e.metaKey && !e.ctrlKey) awakenAudio(e); });
 
   if (bgmToggle) {
     bgmToggle.addEventListener("click", () => {
-      bgmOn = !bgmOn;
+      const needsStart = bgmOn && (!bgmStarted || !audioCtx || audioCtx.state !== "running");
+      bgmOn = needsStart || !bgmOn;
+      try { localStorage.setItem("astra.bgm", bgmOn ? "1" : "0"); } catch (_) {}
       if (bgmOn) {
         ensureAudio();
         startBgm();
-        if (bgmGain && audioCtx) bgmGain.gain.setTargetAtTime(BGM_LEVEL, audioCtx.currentTime, 0.4);
+        if (bgmGain && audioCtx) bgmGain.gain.setTargetAtTime(BGM_LEVEL * bgmVolume, audioCtx.currentTime, 0.4);
         bgmToggle.textContent = t("bgmOn");
       } else {
         stopBgm();
         bgmToggle.textContent = t("bgmOff");
       }
-      bgmToggle.classList.toggle("is-on", bgmOn);
+      bgmToggle.classList.toggle("is-on", bgmOn); bgmToggle.setAttribute("aria-pressed", String(bgmOn));
     });
   }
   if (langToggle) {
-    langToggle.addEventListener("click", () => setLang(lang === "zh" ? "en" : "zh"));
+    langToggle.addEventListener("change", () => setLang(langToggle.value));
   }
 
   // 语言切换时刷新当前屏的动态文案（静态部分由 applyLang 处理）
@@ -3606,15 +3950,15 @@
       paintLore(false);
     }
     if (scr === "tarot") {
-      if (tarotHint) tarotHint.textContent = tarotPicks.length === 3 ? t("tarotPicked3") : (tarotPicks.length ? t("tarotPickedN", [tarotPicks.length]) : t("tarotHintIdle"));
+      updateTarotState();
+      slots.querySelectorAll(".tarot-card").forEach((card,i)=>{const pos=card.querySelector(".pos");if(pos)pos.textContent=tarotPosName(i);});
       if (dialCards.length) updateFocus();
       recolorCards();                 // 牌面重绘（牌名随语言变化）
     } else if (scr === "rune") {
       recolorCards();                 // 符石文字随语言变化
       refreshRuneLabels();
     } else if (scr === "gua") {
-      if (guaHint && guaLines.length === 0) guaHint.textContent = t("guaHintIdle");
-      refreshGuaName();
+      refreshGuaExperience();
     } else if (scr === "mansion") {
       if (mNodes.length) updateMFocus();
       if (mansionHint && mChosen === null) mansionHint.textContent = t("mansionHintIdle");
@@ -3656,6 +4000,28 @@
   let dialOrder = [];                          // dialOrder[i] = 第 i 个位置对应的 TAROT 索引
   let dialCards = [];                          // { el, inner, cv, idx, used }
   let tarotPicks = [];
+  let tarotSpreadId = "time";
+  const spreadSelect = document.getElementById("tarotSpread");
+  function tarotDrawData() { return {cards:tarotPicks, spreadId:tarotSpreadId, spreadVersion:1, positionIds:tarotConfig().keys.slice(), ...(tarotSpreadId==="choice"?{optionA:document.getElementById("tarotOptionA").value.trim(),optionB:document.getElementById("tarotOptionB").value.trim()}:{})}; }
+  function updateTarotSpreadControls() {
+    const options = Object.keys(window.AstraTarotSpreads.spreads).map(id => new Option(tarotConfig({spreadId:id}).title[lang === "en" ? 1 : 0],id));
+    spreadSelect.replaceChildren(...options); spreadSelect.value=tarotSpreadId;
+    spreadSelect.setAttribute("aria-label",lang === "en" ? "Choose a spread" : "选择牌阵");
+    document.getElementById("tarotSpreadLabel").textContent=lang === "en" ? "Choose a spread" : "选择牌阵";
+    document.getElementById("tarotSpreadFocus").textContent=tarotConfig().focus[lang === "en" ? 1 : 0];
+    document.getElementById("tarotChoices").hidden=tarotSpreadId!=="choice";
+    document.getElementById("tarotOptionA").placeholder=lang === "en" ? "For example: keep studying" : "例如：继续读书";
+    document.getElementById("tarotOptionB").placeholder=lang === "en" ? "For example: start working" : "例如：先工作";
+  }
+  spreadSelect.addEventListener("change", () => {
+    const next=spreadSelect.value; if(next===tarotSpreadId)return;
+    const apply=()=>{if(window.AstraPinch)window.AstraPinch.cancel();tarotSpreadId=next;resetTarot();refreshQuestionChips();document.querySelector('[data-screen="tarot"] .module-guide')?.update();};
+    if(!tarotPicks.length){apply();return;}
+    spreadSelect.value=tarotSpreadId;
+    window.astraExperience.openDialog(lang === "en" ? "Start a new spread?" : "开启新的牌阵？",'<p>'+(lang === "en" ? "This will start a new draw. Save the current reading first if you want to revisit it." : "切换玩法会开始新一局；如需回看当前结果，请先生成并保存解读。")+'</p><div class="spread-confirm"><button id="keepTarot" class="ghost-btn">'+(lang === "en" ? "Keep this draw" : "保留本局")+'</button><button id="newTarot" class="primary-btn">'+(lang === "en" ? "Start new draw" : "开启新局")+'</button></div>');
+    document.getElementById("keepTarot").onclick=()=>window.astraExperience.dialog.close();
+    document.getElementById("newTarot").onclick=()=>{window.astraExperience.dialog.close();apply();};
+  });
   let dialAngle = 0, focusedIndex = 0;
   let dragging = false, dragStartX = 0, dragStartAngle = 0;
   let dialAnim = 0;
@@ -3693,6 +4059,7 @@
   }
 
   function resetTarot() {
+    if(window.AstraPinch)window.AstraPinch.reset();
     stopDialSlide();
     slots.innerHTML = ""; tarotPicks = [];
     if (!dialCards.length) buildDial();
@@ -3701,11 +4068,17 @@
   }
 
   function updateTarotState() {
-    const n = tarotPicks.length;
-    tarotReveal.disabled = n !== 3;
-    tarotShuffle.disabled = n === 3;          // 三张已定，洗牌不再影响牌阵
-    if (tarotReset) tarotReset.hidden = n === 0;
-    if (tarotHint) tarotHint.textContent = n === 3 ? t("tarotPicked3") : n ? t("tarotPickedN", [n]) : t("tarotHintIdle");
+    const n=tarotPicks.length,count=tarotConfig().count;
+    updateTarotSpreadControls();
+    tarotReveal.disabled=n!==count;tarotShuffle.disabled=n===count;
+    if(tarotReset)tarotReset.hidden=n===0;
+    if(tarotHint)tarotHint.textContent=lang === "en" ? (n===count ? "Spread complete. Read your reflection when ready." : n+" / "+count+" cards placed · choose the next card or place a held card in its slot.") : (n===count ? "牌阵已落定，可以查看解读。" : "已落定 "+n+" / "+count+" 张 · 轻触选牌，或用指尖仪式抓牌放入下一牌位。");
+    slots.dataset.count=String(count);
+    slots.querySelectorAll(".tarot-drop-target").forEach(el=>el.remove());
+    for(let i=n;i<count;i++){
+      const target=document.createElement("button");target.type="button";target.className="tarot-drop-target ghost-btn";target.dataset.tarotSlot=String(i);target.style.order=String(i);target.disabled=i!==n;
+      const order=document.createElement("small");order.textContent=String(i+1).padStart(2,"0");const label=document.createElement("b");label.textContent=tarotPosName(i);const hint=document.createElement("span");hint.textContent=lang === "en" ? "Place card here" : "放入此牌位";target.append(order,label,hint);target.onclick=confirmPick;slots.append(target);
+    }
   }
 
   function buildDial(keepPicked, angle) {
@@ -3721,6 +4094,9 @@
       const ti = dialOrder[i];
       const card = document.createElement("div");
       card.className = "dial-card";
+      card.tabIndex = 0; card.setAttribute("role", "button");
+      card.setAttribute("aria-label", t("uxPickCard", [tarotName(ti)]));
+      card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pickCardByIndex(i); } });
       const inner = document.createElement("div");
       inner.className = "dial-card-inner";
       const cv = document.createElement("canvas");
@@ -3782,20 +4158,24 @@
     dialCenter.textContent = tarotName(ti);
   }
   function syncDialUsed() {
-    dialCards.forEach(c => c.el.classList.toggle("used", c.used));
+    dialCards.forEach(c => {
+      c.el.classList.toggle("used", c.used); c.el.setAttribute("aria-disabled", String(c.used));
+      c.el.tabIndex = c.used ? -1 : 0;
+    });
   }
-  function pickCardByIndex(i) {
+  function pickCardByIndex(i, heldOrient) {
     const c = dialCards[i];
     if (!c || dialAnim) return;
-    if (tarotPicks.length >= 3) return;
+    if (tarotPicks.length >= tarotConfig().count) return;
     if (c.used) {
       if (tarotHint) tarotHint.textContent = t("tarotUsed");
       return;
     }
+    if(window.AstraPinch?.isHolding())window.AstraPinch.cancel();
     sfx("card");
     c.used = true; syncDialUsed();
     const ti = c.idx;
-    const orient = Math.random() < 0.22 ? "逆" : "正";
+    const orient = heldOrient || (Math.random() < 0.22 ? "逆" : "正");
     tarotPicks.push({ idx: ti, name: TAROT[ti][0], orient });
     placeInSlot(tarotPicks.length - 1, ti, orient);
     if (window.__particles) window.__particles.collapse();
@@ -3809,8 +4189,9 @@
   }
   function confirmPick() { pickCardByIndex(focusedIndex); }   // 供手势 / 选牌口调用
   function placeInSlot(slot, ti, orient) {
+    slots.querySelector(`[data-tarot-slot="${slot}"]`)?.remove();
     const card = document.createElement("div");
-    card.className = "tarot-card";
+    card.className = "tarot-card";card.dataset.tarotSlot=String(slot);card.style.order=String(slot);
     const back = document.createElement("div");
     back.className = "back";
     back.style.backgroundImage = "url(" + BACK_URL + ")"; back.style.backgroundSize = "cover";
@@ -3819,17 +4200,19 @@
     const cv = document.createElement("canvas");
     cv.width = 240; cv.height = 366;
     cv.dataset.idx = ti; cv.dataset.name = tarotName(ti);
-    drawCardFace(cv.getContext("2d"), 240, 366, ti, tarotName(ti));
+    drawCardFace(cv.getContext("2d"), 240, 366, ti, tarotName(ti), orient === "逆");
     face.appendChild(cv);
     const meta = document.createElement("div");
     meta.className = "face-meta";
-    meta.innerHTML = '<div class="pos">' + posName(slot) + '</div>' +
+    meta.innerHTML = '<div class="pos">' + tarotPosName(slot) + '</div>' +
       '<div class="orient">' + (orient === "逆" ? t("orientRev") : t("orientUp")) + "</div>";
     face.appendChild(meta);
     card.appendChild(back); card.appendChild(face);
     slots.appendChild(card);
     setTimeout(() => card.classList.add("flip"), 260);
   }
+
+  document.getElementById("tarotGrip").addEventListener("click",()=>{if(!dialAnim)setDialAngle(dialAngle-DIAL_STEP);});
 
   // 拖动横移（封面流）
   dialWrap.addEventListener("pointerdown", e => {
@@ -3847,7 +4230,8 @@
   dialSelector.addEventListener("click", confirmPick);
 
   tarotShuffle.addEventListener("click", () => {
-    if (tarotPicks.length >= 3 || dialAnim) return;
+    if(window.AstraPinch)window.AstraPinch.reset();
+    if (tarotPicks.length >= tarotConfig().count || dialAnim) return;
     sfx("shuffle");
     const from = dialAngle;
     buildDial(true, from);       // 只重排未取的牌，已选牌保留
@@ -3872,8 +4256,8 @@
     updateTarotState();
   });
   tarotReveal.addEventListener("click", () => {
-    if (tarotPicks.length !== 3) return;
-    showReading("tarot", { cards: tarotPicks });
+    if (tarotPicks.length !== tarotConfig().count) return;
+    showReading("tarot", tarotDrawData());
   });
 
   /* ============================================================
@@ -3889,22 +4273,56 @@
   const guaCoins = document.getElementById("guaCoins");
   const guaCount = document.getElementById("guaCount");
   const guaTris = document.getElementById("guaTris");
+  const guaStepToss = document.getElementById("guaStepToss");
+  const guaReset = document.getElementById("guaReset");
+  const guaThrowStatus = document.getElementById("guaThrowStatus");
+  const guaInsight = document.getElementById("guaInsight");
+  const guaCompare = document.getElementById("guaCompare");
+  const guaCastLog = document.getElementById("guaCastLog");
+  const guaLineDetail = document.getElementById("guaLineDetail");
   const gctx = guaArray ? guaArray.getContext("2d") : null;
   let guaLines = [];
-  let guaTossTimer = null;
+  let guaThrows = [], guaPhase = "idle", guaAuto = false, guaRun = 0, guaSelectedLine = 0, guaView = "base";
+  let guaTossTimer = null, guaLandTimer = null;
   let guaBaseIdx = null, guaChangeIdx = null;
   const GUA_IDX_ZH = ["初", "二", "三", "四", "五", "上"];
   function guaIdxName(i) { return lang === "en" ? String(i + 1) : GUA_IDX_ZH[i]; }
   const guaAnim = { active: false, angle: 0, locked: false, lines: [], raf: null };
 
+  Object.assign(I18N.zh, {
+    guaToss: "一次成卦", guaStep: "掷{{0}}爻", guaRestart: "重新起卦", guaContinue: "掷完余爻", guaComplete: "六爻已成", guaThrowing: "铜钱将落 · 第{{0}}掷", guaProgress: "已成 {{0}} / 6 爻", guaPaused: "已停在第{{0}}爻，可继续掷下一爻。",
+    guaHintIdle: "每次亲掷三枚铜钱，自下而上写成一爻；也可选择一次成卦。", guaDone: "六爻已成。点选爻线看它如何变化，再阅读与你的问题有关的解读。",
+    guaTraceTitle: "这一卦，怎样走到这里", guaAfter: "变化后", guaLogTitle: "回看六次掷币", guaCoinRule: "每币记2或3点，三币相加得6、7、8、9；6与9为动爻。自下而上记录，回看不会重抽。",
+    guaKind6: "老阴 · 6", guaKind7: "少阳 · 7", guaKind8: "少阴 · 8", guaKind9: "老阳 · 9", guaStaticShort: "静卦 · 本卦不变", guaStaticSummary: "六爻皆静，本卦不变", guaMovingSummary: "动爻 {{0}} 处 · {{1}}爻", guaStaticLine: "{{0}}爻：{{1}}。这是静爻，在变化后的卦象中保持原样。", guaMovingLine: "{{0}}爻：{{1}} → {{2}}。这是本次卦象的变化位置，不是对未来的确定预言。", guaCoinsResult: "第{{0}}掷 · {{1}}爻 · {{2}}", guaObservation: "点击任一爻线，对照它在两卦中的位置。", guaViewLabel: "卦象对照视图",
+    guaStaticTone: "{{0}}，先看清哪些条件值得观察。", guaObserve: "观察焦点", guaChangeFocus: "变化焦点",
+    guaBaseDetailed: "本卦为{{0}}，上卦是{{1}}，下卦是{{2}}。先把它看作两种意象组成的结构，而不是对你处境的判决。围绕你提出的问题，可以分别写下外部条件与你自己的应对：哪些已经得到确认，哪些还需要沟通或一次小尝试来验证？",
+    guaStaticReading: "本次六爻中没有6或9，按三钱取象规则，变化后的卦象仍为{{0}}。这不意味着现实不会改变，只是这一组符号没有标出翻转的爻。先挑一条与你的问题直接相关的条件，约定何时观察、看到什么再调整；不要仅为获得另一个答案而反复重起。",
+    guaMovingReading: "本次变化发生在{{0}}爻，将这些动爻翻转后得到{{1}}。这是一种比较视角，不是事情必然会走向的结局。试着区分：你的问题里，什么条件保持不变，什么条件一变就会影响决定？先选择一个可验证的变化，做小范围尝试，再据真实反馈调整。",
+    guaStaticSynth: "{{0}}在这次取象中保持原样。把注意力放在观察条件，而不是追求一个更响亮的结论：先写清你要解决的具体问题，再定一个可以回看的时间点。期间只推进可撤回的小步骤，等有新信息时再更新判断。",
+    guaMovingSynth: "从{{0}}到{{1}}的差别，来自{{2}}爻。回到你的问题，把这次对照落成一张小清单：已经确认的条件、仍不确定的条件、今天能试的一步。卦象提供的是整理变化的方式，实际结果仍要靠行动和观察来核对。"
+  });
+  Object.assign(I18N.en, {
+    guaToss: "Cast all six", guaStep: "Cast line {{0}}", guaRestart: "Start a new cast", guaContinue: "Finish remaining lines", guaComplete: "Six lines formed", guaThrowing: "Coins falling · throw {{0}}", guaProgress: "{{0}} / 6 lines formed", guaPaused: "Paused after {{0}} lines. Continue when ready.",
+    guaHintIdle: "Cast three coins for each line, building from the bottom up, or cast all six at once.", guaDone: "Six lines formed. Select a line to inspect the change, then read about your question.",
+    guaTraceTitle: "How this hexagram took shape", guaAfter: "After changing", guaLogTitle: "Review the six coin throws", guaCoinRule: "Each coin counts as 2 or 3. Three coins total 6, 7, 8 or 9; 6 and 9 move. Lines are recorded from the bottom up. Reviewing never draws again.",
+    guaKind6: "Old yin · 6", guaKind7: "Young yang · 7", guaKind8: "Young yin · 8", guaKind9: "Old yang · 9", guaStaticShort: "Static · unchanged", guaStaticSummary: "All six lines are still; the hexagram stays the same", guaMovingSummary: "{{0}} moving lines · {{1}}", guaStaticLine: "Line {{0}}: {{1}}. This still line keeps its form in the changed hexagram.", guaMovingLine: "Line {{0}}: {{1}} → {{2}}. This marks a change in the symbols, not a certain prediction.", guaCoinsResult: "Throw {{0}} · line {{1}} · {{2}}", guaObservation: "Select any line to compare its position in both hexagrams.", guaViewLabel: "Hexagram comparison view",
+    guaStaticTone: "{{0}}: notice which conditions deserve attention.", guaObserve: "What to observe", guaChangeFocus: "Where change is marked",
+    guaBaseDetailed: "The base hexagram is {{0}}, with {{1}} above and {{2}} below. Treat it as a structure made from two images, not a verdict on your circumstances. For the question you brought, distinguish external conditions from your own response. Which facts are already known, and which need a conversation or a small experiment before you can rely on them?",
+    guaStaticReading: "None of the six values is 6 or 9, so this three-coin draw leaves {{0}} unchanged. This does not mean that real life will stand still; it simply means this draw marks no line for reversal. Choose one condition relevant to your question and decide when to observe it and what evidence would justify an adjustment. Repeatedly drawing for a more attractive answer is not a substitute for new information.",
+    guaMovingReading: "Lines {{0}} move in this draw. Reversing them produces {{1}}. This is a way to compare possibilities, not a promise about the outcome. In the question you brought, separate what stays constant from what would change your decision if it shifted. Pick one uncertainty you can test with a small, reversible action, then adjust using real feedback.",
+    guaStaticSynth: "{{0}} stays the same in this draw. Focus on conditions worth watching instead of seeking a louder answer. Write the concrete question you want to resolve and set a time to review it. Until then, take small steps you can reverse and update your judgment when new information arrives.",
+    guaMovingSynth: "The difference between {{0}} and {{1}} comes from lines {{2}}. Bring the comparison back to your question with a short list: known conditions, remaining uncertainties, and one step you can try today. The hexagram offers a structure for reflection; action and observation are how you check what happens in life."
+  });
+
   function guaIndices(lines) {
-    let base = 0, change = 0;
-    lines.forEach((v, i) => { if (v === 7 || v === 9) base += 1 << i; });
-    lines.forEach((v, i) => {
-      const c = v === 6 ? 7 : v === 9 ? 8 : v;
-      if (c === 7) change += 1 << i;
-    });
-    return { base, change };
+    return window.AstraGuaCore.derive(lines);
+  }
+  function guaReadingFacts(lines) {
+    const facts = guaIndices(lines), baseIdx = guaKingWen(facts.base), changeIdx = guaKingWen(facts.change);
+    const tri = index => ({ code: TRI[index].code, name: triName(TRI[index]), zh: TRI[index].zh, en: TRI[index].en });
+    return { lines: facts.lines, changedLines: facts.changedLines, movingLines: facts.movingLines, movingPositions: facts.movingPositions, isStatic: facts.isStatic,
+      name: guaFullName(baseIdx), guaIndex: baseIdx + 1, changeName: guaFullName(changeIdx), changeIdx,
+      upperTrigram: tri(facts.base >> 3 & 7), lowerTrigram: tri(facts.base & 7), changedUpperTrigram: tri(facts.change >> 3 & 7), changedLowerTrigram: tri(facts.change & 7) };
   }
   function setGuaCount(n) {
     if (!guaCount) return;
@@ -3955,6 +4373,72 @@
     guaName.innerHTML = guaName_html(guaBaseIdx, guaChangeIdx);
     renderGuaTris(guaBaseIdx);
   }
+  function guaKind(value) { return t("guaKind" + value); }
+  function selectGuaLine(index) {
+    if (index < 0 || index >= guaLines.length) return;
+    guaSelectedLine = index;
+    const value = guaLines[index], moving = value === 6 || value === 9;
+    const changed = value === 6 ? 7 : value === 9 ? 8 : value;
+    guaLineDetail.textContent = t(moving ? "guaMovingLine" : "guaStaticLine", [guaIdxName(index), guaKind(value), guaKind(changed)]);
+    document.querySelectorAll('[data-gua-line]').forEach(node => {
+      const selected = Number(node.dataset.guaLine) === index;
+      node.classList.toggle("is-selected", selected); node.setAttribute("aria-pressed", String(selected));
+    });
+  }
+  function renderGuaInsight() {
+    guaInsight.hidden = guaLines.length === 0;
+    if (!guaLines.length) return;
+    const complete = guaLines.length === 6, facts = complete ? guaIndices(guaLines) : null;
+    document.getElementById("guaChangeSummary").textContent = !complete ? t("guaProgress", [guaLines.length]) : facts.isStatic ? t("guaStaticSummary") : t("guaMovingSummary", [facts.movingLines.length, facts.movingPositions.map(i => guaIdxName(i - 1)).join(lang === "en" ? ", " : "、")]);
+    const view = document.getElementById("guaViewSwitch");
+    view.hidden = !complete; view.setAttribute("aria-label", t("guaViewLabel"));
+    guaInsight.dataset.view = guaView;
+    view.querySelectorAll("[data-gua-view]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.guaView === guaView)));
+    guaCompare.hidden = !complete; guaCompare.replaceChildren();
+    if (complete) {
+      [["base", facts.base, facts.lines], ["change", facts.change, facts.changedLines]].forEach(([key, binary, values]) => {
+        const board = document.createElement("article"); board.className = "gua-compare-board"; board.dataset.guaBoard = key;
+        const eyebrow = document.createElement("p"); eyebrow.className = "gua-board-label"; eyebrow.textContent = t(key === "base" ? "lblBaseHex" : "guaAfter");
+        const name = document.createElement("h4"); name.textContent = guaFullName(guaKingWen(binary));
+        const tris = document.createElement("p"); tris.className = "gua-board-tris"; tris.textContent = t("triUpper") + " · " + triName(TRI[binary >> 3 & 7]) + " / " + t("triLower") + " · " + triName(TRI[binary & 7]);
+        const rows = document.createElement("div"); rows.className = "gua-compare-lines";
+        values.forEach((value, index) => {
+          const moving = facts.movingPositions.includes(index + 1);
+          const row = document.createElement("button"); row.type = "button"; row.className = "gua-compare-row" + (moving ? " is-moving" : ""); row.dataset.guaLine = index;
+          row.setAttribute("aria-label", guaIdxName(index) + " · " + guaKind(value));
+          const number = document.createElement("span"); number.textContent = guaIdxName(index);
+          const line = document.createElement("span"); line.className = "gua-mini-line" + (value === 6 || value === 8 ? " yin" : "");
+          const tag = document.createElement("span"); tag.className = "gua-row-value"; tag.textContent = value + (moving ? " ·" : "");
+          row.append(number, line, tag); row.addEventListener("click", () => selectGuaLine(index)); rows.appendChild(row);
+        });
+        board.append(eyebrow, name, rows, tris); guaCompare.appendChild(board);
+      });
+    }
+    guaCastLog.replaceChildren();
+    guaThrows.forEach((record, index) => {
+      const item = document.createElement("li"), button = document.createElement("button");
+      button.type = "button"; button.dataset.guaLine = index;
+      const position = document.createElement("span"); position.textContent = guaIdxName(index);
+      const coins = document.createElement("b"); coins.textContent = record.coins.join(" + ") + " = " + record.value;
+      const kind = document.createElement("span"); kind.textContent = guaKind(record.value);
+      button.append(position, coins, kind); button.addEventListener("click", () => selectGuaLine(index)); item.appendChild(button); guaCastLog.appendChild(item);
+    });
+    selectGuaLine(Math.min(guaSelectedLine, guaLines.length - 1));
+  }
+  function refreshGuaExperience() {
+    const casting = guaPhase === "throwing" || guaAuto, complete = guaLines.length === 6;
+    guaCoins.disabled=casting||complete;guaCoins.setAttribute("aria-label",t("guaStep",[guaIdxName(Math.min(guaLines.length,5))]));
+    guaStepToss.disabled = casting || complete; guaToss.disabled = casting || complete; guaReveal.disabled = !complete;
+    guaStepToss.textContent = complete ? t("guaComplete") : casting ? t("guaThrowing", [guaLines.length + 1]) : t("guaStep", [guaIdxName(guaLines.length)]);
+    guaToss.textContent = t(guaLines.length && !complete ? "guaContinue" : "guaToss");
+    guaReset.disabled = guaLines.length === 0 && !casting;
+    if (guaHint) guaHint.textContent = complete ? t("guaDone") : casting ? t("guaThrowing", [guaLines.length + 1]) : guaPhase === "paused" ? t("guaPaused", [guaLines.length]) : t("guaHintIdle");
+    Array.from(hexWrap.children).forEach((line, index) => {
+      const label = line.querySelector(".idx"); if (label) label.textContent = guaIdxName(index);
+      if (index < guaLines.length) line.setAttribute("aria-label", guaIdxName(index) + " · " + guaKind(guaLines[index]));
+    });
+    setGuaCount(guaLines.length); refreshGuaName(); renderGuaInsight();
+  }
   function settleYao(el) {
     // 动画若被后台标签页冻结会停在隐藏起始帧，超时后强制落到终态
     setTimeout(() => el.classList.add("settled"), 640);
@@ -3963,7 +4447,7 @@
     const ghost = hexWrap.children[i];
     if (!ghost) return;
     const yang = (v === 7 || v === 9), old = (v === 6 || v === 9);
-    const y = document.createElement("div");
+    const y = document.createElement("button"); y.type = "button"; y.dataset.guaLine = i;
     y.className = "yao" + (yang ? "" : " yin") + (old ? " old" : "");
     const idx = document.createElement("span");
     idx.className = "idx";
@@ -3976,6 +4460,8 @@
       y.appendChild(tag);
     }
     hexWrap.replaceChild(y, ghost);
+    y.addEventListener("click", () => selectGuaLine(i));
+    y.setAttribute("aria-label", guaIdxName(i) + " · " + guaKind(v));
     settleYao(y);
   }
   function flipCoins() {
@@ -4055,60 +4541,71 @@
   function guaName_html(base, change) {
     const kw = guaKingWen(base), kc = guaKingWen(change);
     const b = guaFullName(kw), c = guaFullName(kc);
-    return b + " <small>" + t("hexInfo", [kw + 1, c]) + "</small>";
+    return esc(b) + " <small>" + esc(base === change ? t("guaStaticShort") : t("hexInfo", [kw + 1, c])) + "</small>";
+  }
+  function pauseGuaCasting() {
+    const wasCasting = guaPhase === "throwing" || guaAuto || guaTossTimer !== null;
+    guaRun++; clearTimeout(guaTossTimer); clearTimeout(guaLandTimer);
+    guaTossTimer = null; guaLandTimer = null; guaAuto = false;
+    if (guaCoins) guaCoins.classList.remove("casting");
+    if (wasCasting && guaLines.length < 6) {
+      guaPhase = "paused";
+      if (guaThrowStatus) guaThrowStatus.textContent = t("guaPaused", [guaLines.length]);
+      refreshGuaExperience();
+    }
   }
   function resetGua() {
+    pauseGuaCasting();
     renderGuaSlots();
-    guaLines = []; guaBaseIdx = null; guaChangeIdx = null;
-    guaReveal.disabled = true;
+    guaLines = []; guaThrows = []; guaPhase = "idle"; guaSelectedLine = 0; guaView = "base";
+    guaBaseIdx = null; guaChangeIdx = null;
     guaAnim.locked = false; guaAnim.lines = []; guaAnim.angle = 0;
-    if (guaCoins) guaCoins.classList.remove("casting");
-    setGuaCount(0);
-    refreshGuaName();
-    if (guaHint) guaHint.textContent = t("guaHintIdle");
+    guaCoins.querySelectorAll(".coin").forEach(coin => { delete coin.dataset.points; coin.querySelector("span").textContent = "·"; });
+    guaThrowStatus.textContent = ""; guaLineDetail.textContent = "";
+    refreshGuaExperience();
     drawGuaArray();
   }
-  guaToss.addEventListener("click", () => {
-    clearInterval(guaTossTimer);                 // 连点时重新起卦，避免多个计时器叠加
-    renderGuaSlots();
-    guaLines = []; guaAnim.lines = []; guaAnim.locked = false;
-    guaBaseIdx = null; guaChangeIdx = null;
-    guaReveal.disabled = true;
-    setGuaCount(0);
-    refreshGuaName();
-    if (guaHint) guaHint.textContent = t("guaCasting");
-    let i = 0;
-    guaTossTimer = setInterval(() => {
-      const heads = (Math.random() < 0.5 ? 1 : 0) + (Math.random() < 0.5 ? 1 : 0) + (Math.random() < 0.5 ? 1 : 0);
-      // heads: 0→老阴(6) 1→少阴(8) 2→少阳(7) 3→老阳(9)
-      const v = heads === 0 ? 6 : heads === 1 ? 8 : heads === 2 ? 7 : 9;
-      flipCoins();
-      sfx("coin");
-      guaLines.push(v); guaAnim.lines.push(v); // 自下而上，appendChild 在 column-reverse 下自底向上
-      setGuaLine(i, v);
-      setGuaCount(i + 1);
-      i++;
-      if (window.__particles) window.__particles.collapse();
-      if (i >= 6) {
-        clearInterval(guaTossTimer); guaTossTimer = null;
-        guaAnim.locked = true;
-        const gi = guaIndices(guaLines);
-        guaBaseIdx = gi.base; guaChangeIdx = gi.change;
-        refreshGuaName();
-        if (guaHint) guaHint.textContent = t("guaDone");
-        setTimeout(() => { if (window.__particles) window.__particles.expand(); }, 200);
-        guaReveal.disabled = false;
-      }
-    }, 360);
-  });
+  function tossNextGua(auto = false) {
+    if (guaPhase === "throwing" || guaLines.length >= 6) return;
+    clearTimeout(guaTossTimer); guaTossTimer = null;
+    const token = ++guaRun, record = window.AstraGuaCore.drawLine();
+    guaAuto = auto; guaPhase = "throwing";
+    guaCoins.querySelectorAll(".coin span").forEach(coin => { coin.textContent = "·"; });
+    guaThrowStatus.textContent = t("guaThrowing", [guaLines.length + 1]);
+    refreshGuaExperience(); flipCoins(); sfx("coin");
+    guaLandTimer = setTimeout(() => {
+      if (token !== guaRun || state.screen !== "gua") return;
+      guaLandTimer = null;
+      const index = guaLines.length;
+      guaLines.push(record.value); guaThrows.push(record); guaAnim.lines.push(record.value);
+      guaSelectedLine = index; setGuaLine(index, record.value);
+      guaCoins.classList.remove("casting");
+      guaCoins.querySelectorAll(".coin").forEach((coin, i) => { coin.dataset.points = record.coins[i]; coin.querySelector("span").textContent = record.coins[i]; });
+      guaThrowStatus.textContent = t("guaCoinsResult", [index + 1, guaIdxName(index), record.coins.join(" + ") + " = " + record.value + " · " + guaKind(record.value)]);
+      if (guaLines.length === 6) {
+        const facts = guaIndices(guaLines);
+        guaBaseIdx = facts.base; guaChangeIdx = facts.change; guaAnim.locked = true;
+        guaPhase = "complete"; guaAuto = false;
+      } else guaPhase = "partial";
+      refreshGuaExperience(); drawGuaArray();
+      if (window.__particles) window.__particles.pulseRipple();
+      if (guaAuto) guaTossTimer = setTimeout(() => tossNextGua(true), reduced ? 50 : 160);
+    }, reduced ? 130 : 480);
+  }
+  guaCoins.addEventListener("click",()=>{if(!guaStepToss.disabled)guaStepToss.click();});
+  guaStepToss.addEventListener("click", () => { if (!guaAuto) tossNextGua(false); });
+  guaToss.addEventListener("click", () => tossNextGua(true));
+  guaReset.addEventListener("click", () => { resetGua(); sfx("shuffle"); });
+  document.querySelectorAll("[data-gua-view]").forEach(button => button.addEventListener("click", () => {
+    guaView = button.dataset.guaView; renderGuaInsight();
+  }));
   guaReveal.addEventListener("click", () => {
     if (guaLines.length !== 6) return;
     const gi = guaIndices(guaLines);
     guaBaseIdx = gi.base; guaChangeIdx = gi.change;
     guaAnim.locked = true;
     refreshGuaName();
-    const kw = guaKingWen(gi.base), kc = guaKingWen(gi.change);
-    showReading("gua", Object.assign({ name: guaFullName(kw), guaIndex: kw + 1, changeName: guaFullName(kc), changeIdx: kc, lines: guaLines.slice() }, readQuestion("gua")));
+    showReading("gua", Object.assign(guaReadingFacts(guaLines), { coinThrows: guaThrows.map(record => ({ coins: record.coins.slice(), value: record.value })) }, readQuestion("gua")));
   });
 
   /* ============================================================
@@ -4126,7 +4623,6 @@
   function renderNumberResult() {
     if (!numData || !numResult) return;
     const raw = numData.raw, s = numData.symbolIdx;
-    const sum = raw.split("").reduce((a, b) => a + Number(b), 0);
     ensureNumImg(s);
     numResult.innerHTML = "";
     const card = document.createElement("div"); card.className = "num-card";
@@ -4136,13 +4632,9 @@
     const sym = document.createElement("div"); sym.className = "num-symbol"; sym.textContent = numSymbol(s);
     const theme = document.createElement("div"); theme.className = "num-theme"; theme.textContent = numThemeStr(s);
     const gloss = document.createElement("div"); gloss.className = "num-gloss"; gloss.textContent = numGlossStr(s);
-    const facts = document.createElement("div"); facts.className = "num-facts";
-    const f1 = document.createElement("span"); f1.className = "num-fact"; f1.textContent = t("numSum", [sum]);
-    const f2 = document.createElement("span"); f2.className = "num-fact"; f2.textContent = t("numRoot", [s + 1]);
-    facts.appendChild(f1); facts.appendChild(f2);
-    const rawEl = document.createElement("div"); rawEl.className = "num-raw";
-    rawEl.textContent = raw.split("").join(" + ") + " = " + sum;
-    meta.appendChild(sym); meta.appendChild(theme); meta.appendChild(gloss); meta.appendChild(facts); meta.appendChild(rawEl);
+    const invitation = document.createElement("p"); invitation.className = "num-invitation";
+    invitation.textContent = numLens(s)[1];
+    meta.append(sym, theme, gloss, invitation);
     card.appendChild(wrap); card.appendChild(meta);
     numResult.appendChild(card);
     setTimeout(() => card.classList.add("settled"), 700);
@@ -4163,6 +4655,7 @@
       const btn = e.target.closest(".num-chip");
       if (!btn || btn.classList.contains("num-chip-rand")) return;
       numInput.value = btn.dataset.fill || "";
+      numInput.dispatchEvent(new Event("input", { bubbles: true }));
       sfx("tick");
       numInput.focus();
       numInput.select();
@@ -4282,8 +4775,8 @@
     sfx("whoosh");
     if (window.__particles) window.__particles.collapse();
     setTimeout(() => { if (window.__particles) window.__particles.expand(); }, 360);
-    const s = raw.split("").reduce((a, b) => a + Number(b), 0) % NUMBER_SYMBOLS.length;
-    numData = { raw, symbol: numSymbol(s), theme: numThemeStr(s), symbolIdx: s, themeIdx: s };
+    const facts = numberFacts(raw), s = facts.symbolIdx;
+    numData = Object.assign({ raw, symbol: numSymbol(s), theme: numThemeStr(s), themeIdx: s }, facts);
     renderNumberResult();
     numReveal.disabled = false;
     requestAnimationFrame(revealNumResult);
@@ -4431,6 +4924,8 @@
     for (let i = 0; i < MANSION_COUNT; i++) {
       const nd = document.createElement("div");
       nd.className = "mansion-node";
+      nd.tabIndex = 0; nd.setAttribute("role", "button"); nd.setAttribute("aria-label", mansionFull(MANSION[i]));
+      nd.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); chooseMansion(i); } });
       nd.style.transform = "rotate(" + (i * MSTEP) + "deg) translateY(-" + radius + "px)";
       const dot = document.createElement("div"); dot.className = "dot";
       const lbl = document.createElement("div"); lbl.className = "lbl";
@@ -4469,6 +4964,7 @@
       if (name) name.textContent = lang === "en" ? m.ce : m.c;
       if (meta) meta.textContent = lang === "en" ? (beast.en + " · " + m.ee + " · " + m.be) : (beast.zh + " · " + m.e + " · " + m.b);
     }
+    mansionCenter.setAttribute("aria-label",realmText("确认取宿：","Confirm mansion: ")+mansionFull(m));
     if (mansionCaption) mansionCaption.textContent = mansionImg(m);
   }
   function chooseMansion(i) {
@@ -4501,6 +4997,8 @@
   mansionStage.addEventListener("pointerup", mEndDrag);
   mansionStage.addEventListener("pointercancel", mEndDrag);
   mansionSelector.addEventListener("click", () => chooseMansion(mFocus));
+  mansionCenter.tabIndex=0;mansionCenter.setAttribute("role","button");mansionCenter.addEventListener("click",()=>chooseMansion(mFocus));
+  mansionCenter.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();chooseMansion(mFocus);}});
   mansionSpin.addEventListener("click", () => {
     if (mSpinning) return;
     sfx("whoosh");
@@ -4773,68 +5271,78 @@
     paintRuneStone(cv.getContext("2d"), idx);
     return cv;
   }
-  function buildRuneSlots() {
-    runeRow.innerHTML = "";
-    runeSlots = [];
-    for (let i = 0; i < 3; i++) {
-      const slot = document.createElement("div");
-      slot.className = "rune-slot";
-      const ph = document.createElement("span");
-      ph.className = "rune-ph";
-      ph.textContent = "?";
-      const pos = document.createElement("span");
-      pos.className = "rune-pos";
-      pos.textContent = posName(i);
-      slot.appendChild(ph); slot.appendChild(pos);
-      runeRow.appendChild(slot);
-      runeSlots.push(slot);
+  let runeDraftOrder=[],runeBrowsePosition=0;
+  const runePool=document.getElementById("runePool"),runePoolTrack=document.getElementById("runePoolTrack");
+  function realmText(zh,en){return window.AstraLocale.translate(lang==="en"?en:zh);}
+  function runePosition(i){return (lang==="en"?["Context","Present","Next"]:["回顾","当下","下一步"])[i];}
+  function buildRunePool(){
+    runeDraftOrder=Array.from({length:RUNE.length},(_,i)=>i);
+    for(let i=runeDraftOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[runeDraftOrder[i],runeDraftOrder[j]]=[runeDraftOrder[j],runeDraftOrder[i]];}
+    runePoolTrack.replaceChildren();runeBrowsePosition=0;
+    runeDraftOrder.forEach(idx=>{
+      const button=document.createElement("button");button.type="button";button.className="rune-candidate";button.dataset.runeCandidate=String(idx);
+      const image=document.createElement("img");image.src=runeVisionSrc(idx);image.alt="";image.draggable=false;image.loading="lazy";
+      const glyph=document.createElement("b");glyph.className="rune-candidate-glyph";glyph.textContent=RUNE[idx].g;
+      const name=document.createElement("span");name.className="rune-candidate-name";button.append(image,glyph,name);
+      button.addEventListener("click",()=>placeRuneCandidate(idx));runePoolTrack.append(button);
+    });updateRuneDraft();
+  }
+  function setRuneBrowse(value){
+    runeBrowsePosition=Math.max(0,Math.min(RUNE.length-1,value));
+    const buttons=[...runePoolTrack.children],first=buttons[0];if(!first)return;
+    const stride=first.offsetWidth+16;
+    runePoolTrack.style.transform=`translate3d(${(runePool.clientWidth-first.offsetWidth)/2-runeBrowsePosition*stride}px,0,0)`;
+    buttons.forEach((b,i)=>{const focused=i===Math.round(runeBrowsePosition);b.classList.toggle("is-focused",focused);b.tabIndex=focused&&!b.disabled?0:-1;});
+    runePool.dataset.focus=String(Math.round(runeBrowsePosition));
+  }
+  function updateRuneDraft(){
+    runePoolTrack.querySelectorAll("[data-rune-candidate]").forEach(button=>{
+      const idx=Number(button.dataset.runeCandidate),name=lang==="en"?RUNE[idx].n:RUNE[idx].z;
+      button.querySelector(".rune-candidate-name").textContent=name;button.disabled=runePicks.includes(idx);button.classList.toggle("is-used",button.disabled);button.setAttribute("aria-label",name+(button.disabled?realmText(" · 已落定"," · placed"):realmText(" · 选取符石"," · choose rune")));
+    });
+    runeSlots.forEach((slot,i)=>{slot.dataset.runeSlot=String(i);slot.disabled=i!==runePicks.length||i>=3;slot.querySelector(".rune-pos").textContent=runePosition(i);slot.setAttribute("aria-label",runePosition(i)+realmText(" · 放入符石"," · place rune"));});
+    runeReveal.disabled=runePicks.length!==3;runeCast.disabled=runePicks.length===3;
+    runePool.hidden=runePicks.length===3;runePool.nextElementSibling.hidden=runePicks.length===3;document.getElementById("runeNext").disabled=runePicks.length===3;
+    document.getElementById("runeReset").hidden=runePicks.length===0;
+    runeHint.textContent=runePicks.length===3?t("runeCastDone",[runePicks.map(i=>lang==="en"?RUNE[i].n:RUNE[i].z).join(" · ")]):realmText(`已落定 ${runePicks.length} / 3 枚 · 下一阵位：${runePosition(runePicks.length)}`,`${runePicks.length} / 3 placed · next: ${runePosition(runePicks.length)}`);
+    setRuneBrowse(runeBrowsePosition);
+  }
+  function buildRuneSlots(){
+    runeRow.replaceChildren();runeSlots=[];
+    for(let i=0;i<3;i++){
+      const slot=document.createElement("button");slot.type="button";slot.className="rune-slot";slot.dataset.runeSlot=String(i);
+      const ph=document.createElement("span");ph.className="rune-ph";ph.textContent="✦";
+      const pos=document.createElement("span");pos.className="rune-pos";pos.textContent=runePosition(i);slot.append(ph,pos);
+      slot.addEventListener("click",()=>placeRuneCandidate(runeDraftOrder[Math.round(runeBrowsePosition)]));runeRow.append(slot);runeSlots.push(slot);
     }
   }
-  function refreshRuneLabels() {
-    runeSlots.forEach((slot, i) => {
-      const pos = slot.querySelector(".rune-pos");
-      if (pos) pos.textContent = posName(i);
-    });
+  function refreshRuneLabels(){updateRuneDraft();}
+  function resetRune(){
+    if(window.AstraPinch)window.AstraPinch.reset();runeCastSeq++;runePicks=[];runeReveal.disabled=true;buildRuneSlots();buildRunePool();
   }
-  function resetRune() {
-    runePicks = []; runeReveal.disabled = true;
-    buildRuneSlots();
-    if (runeHint) runeHint.textContent = t("hintRune");
+  function placeRuneCandidate(idx,{silent=false}={}){
+    if(!Number.isInteger(idx)||idx<0||idx>=RUNE.length||runePicks.length>=3||runePicks.includes(idx))return false;
+    if(window.AstraPinch?.isHolding())window.AstraPinch.cancel();
+    const slot=runeSlots[runePicks.length];runePicks.push(idx);slot.append(drawRuneStone(idx));slot.classList.add("filled");if(!silent)sfx("rune");updateRuneDraft();return true;
   }
-  runeCast.addEventListener("click", () => {
-    const seq = ++runeCastSeq;
-    runePicks = []; runeReveal.disabled = true;
-    runeSlots.forEach(slot => {
-      const cv = slot.querySelector("canvas");
-      if (cv) cv.remove();
-      slot.classList.remove("filled");
-      slot.style.animation = "";
-    });
-    const pool = []; for (let i = 0; i < RUNE.length; i++) pool.push(i);
-    for (let k = 0; k < 3 && pool.length; k++) {
-      const j = Math.floor(Math.random() * pool.length);
-      runePicks.push(pool.splice(j, 1)[0]);
-    }
-    runePicks.forEach((idx, k) => {
-      const slot = runeSlots[k];
-      if (!slot) return;
-      const cv = drawRuneStone(idx);
-      slot.appendChild(cv);
-      slot.classList.add("filled");
-      slot.style.animation = "none";
-      void slot.offsetWidth;
-      slot.style.animation = "runeIn 0.5s var(--ease-out) both";
-      slot.style.animationDelay = (k * 0.12) + "s";
-      setTimeout(() => { if (seq === runeCastSeq) { slot.style.animation = "none"; slot.style.animationDelay = ""; } }, 900);
-      setTimeout(() => sfx("rune"), k * 130);
-    });
-    if (runeHint) {
-      const names = runePicks.map(i => lang === "en" ? RUNE[i].n : RUNE[i].z).join(" · ");
-      runeHint.textContent = t("runeCastDone", [names]);
-    }
-    runeReveal.disabled = false;
+  document.getElementById("runeNext").addEventListener("click",()=>{
+    for(let step=1;step<=RUNE.length;step++){const i=(Math.round(runeBrowsePosition)+step)%RUNE.length;if(!runePicks.includes(runeDraftOrder[i])){setRuneBrowse(i);break;}}
   });
-  runeReveal.addEventListener("click", () => { if (runePicks.length) showReading("rune", { runes: runePicks }); });
+  document.getElementById("runeReset").addEventListener("click",resetRune);
+  runeCast.addEventListener("click",()=>{
+    if(window.AstraPinch)window.AstraPinch.reset();
+    const remaining=runeDraftOrder.filter(i=>!runePicks.includes(i));
+    const seq=++runeCastSeq;let beat=0;while(runePicks.length<3&&remaining.length){const index=Math.floor(Math.random()*remaining.length);placeRuneCandidate(remaining.splice(index,1)[0],{silent:true});setTimeout(()=>{if(seq===runeCastSeq&&state.screen==="rune")sfx("rune");},beat++*130);}
+  });
+  runeReveal.addEventListener("click",()=>{if(runePicks.length===3)showReading("rune",Object.assign({runes:runePicks.slice()},readQuestion("rune")));});
+  runePool.addEventListener("keydown",event=>{if(!["ArrowLeft","ArrowRight"].includes(event.key))return;event.preventDefault();setRuneBrowse(Math.round(runeBrowsePosition)+(event.key==="ArrowRight"?1:-1));runePoolTrack.children[Math.round(runeBrowsePosition)]?.focus({preventScroll:true});});
+  let runePointer=null;
+  runePool.addEventListener("pointerdown",event=>{if(event.button!==0)return;runePointer={id:event.pointerId,x:event.clientX,position:runeBrowsePosition,moved:false};});
+  runePool.addEventListener("pointermove",event=>{if(!runePointer||event.pointerId!==runePointer.id)return;const dx=event.clientX-runePointer.x;if(Math.abs(dx)>8)runePointer.moved=true;if(runePointer.moved){const stride=(runePoolTrack.firstElementChild?.offsetWidth||116)+16;setRuneBrowse(runePointer.position-dx/stride);}});
+  const endRunePointer=()=>{if(!runePointer)return;setRuneBrowse(Math.round(runeBrowsePosition));if(runePointer.moved){runePool.dataset.suppressClick="true";setTimeout(()=>delete runePool.dataset.suppressClick,0);}runePointer=null;};
+  window.addEventListener("pointerup",endRunePointer);window.addEventListener("pointercancel",endRunePointer);
+  runePool.addEventListener("click",event=>{if(runePool.dataset.suppressClick){event.stopImmediatePropagation();event.preventDefault();}},true);
+  window.addEventListener("resize",()=>{if(runeDraftOrder.length)setRuneBrowse(runeBrowsePosition);});
 
   /* ============================================================
      寺观灵签模块 · 一签之示
@@ -4859,9 +5367,27 @@
     const s = ORACLE[oracleChosen];
     if (oracleLevelEl) oracleLevelEl.textContent = oracleLevel(s);
     if (oracleCaptionEl) oracleCaptionEl.textContent = t("oracleGot", [s.no, oracleLevel(s), oraclePoem(s)[0]]);
+    refreshOracleVerse();
   }
+  let oraclePreviewReady=false;
+  const oracleGestureConfirm=document.getElementById("oracleGestureConfirm"),oracleUnfold=document.getElementById("oracleUnfold"),oracleVerse=document.getElementById("oracleVerse");
+  function clearOraclePreview(){oraclePreviewReady=false;oracleGestureConfirm.disabled=true;oracleCup.classList.remove("gesture-ready");oracleCup.style.rotate="0deg";}
+  function refreshOracleVerse(){
+    oracleUnfold.hidden=oracleChosen===null;oracleStick.tabIndex=oracleChosen===null?-1:0;oracleStick.setAttribute("aria-hidden",String(oracleChosen===null));
+    if(oracleChosen===null){oracleVerse.hidden=true;oracleVerse.replaceChildren();return;}
+    const poem=oraclePoem(ORACLE[oracleChosen]);oracleVerse.replaceChildren();
+    poem.forEach(line=>{const p=document.createElement("div");p.textContent=line;oracleVerse.append(p);});
+    oracleUnfold.textContent=oracleVerse.hidden?realmText("展开签笺","Unfold the verse"):realmText("收起签笺","Fold the verse");
+    oracleStick.setAttribute("aria-label",realmText("上提展开本次签笺","Lift to unfold this lot"));
+  }
+  oracleGestureConfirm.addEventListener("click",()=>{if(oraclePreviewReady&&!oracleBusy&&oracleChosen===null)oracleDraw.click();});
+  oracleUnfold.addEventListener("click",()=>{if(oracleChosen===null)return;oracleVerse.hidden=!oracleVerse.hidden;refreshOracleVerse();});
+  oracleStick.tabIndex=0;oracleStick.setAttribute("role","button");
+  oracleStick.addEventListener("click",()=>{if(oracleChosen!==null)oracleUnfold.click();});
+  oracleStick.addEventListener("keydown",event=>{if((event.key==="Enter"||event.key===" ")&&oracleChosen!==null){event.preventDefault();oracleUnfold.click();}});
   function resetOracle() {
-    oracleChosen = null; oracleBusy = false; oracleReveal.disabled = true;
+    clearOraclePreview();oracleVerse.hidden=true;
+    oracleChosen = null; oracleBusy = false; oracleReveal.disabled = true;refreshOracleVerse();
     oracleStick.classList.remove("show", "settled");
     oracleCup.classList.remove("shake");
     if (oracleNum) oracleNum.textContent = "";
@@ -4869,6 +5395,7 @@
   }
   oracleDraw.addEventListener("click", () => {
     if (oracleBusy) return;
+    if(window.AstraPinch)window.AstraPinch.reset();clearOraclePreview();oracleVerse.hidden=true;oracleUnfold.hidden=true;
     oracleBusy = true; oracleReveal.disabled = true; oracleChosen = null;
     oracleStick.classList.remove("show", "settled");
     if (oracleNum) oracleNum.textContent = "";
@@ -4887,7 +5414,7 @@
       setTimeout(() => oracleStick.classList.add("settled"), 1600);
       sfx("card");
       if (window.__particles) window.__particles.expand();
-      oracleReveal.disabled = false; oracleBusy = false;
+      oracleReveal.disabled = false; oracleBusy = false;refreshOracleVerse();
     }, 620);
   });
   oracleReveal.addEventListener("click", () => { if (oracleChosen !== null) showReading("oracle", { sign: oracleChosen }); });
@@ -4935,7 +5462,7 @@
   initRipple(".primary-btn, .ghost-btn, .card, .dial-card");
 
   /* ============================================================
-     摄像头手势：张开手掌 = 隔空光标，停在按钮 / 牌上约 0.8s = 选中。
+     摄像头手势：张开手掌 = 隔空光标，停在按钮 / 牌上约 1.2s = 选中。
      只保留这一种交互——原先的捏合点击、握拳返回与运动追踪降级
      因误触发频发已移除；返回请停在「‹ 返回」按钮上。
      MediaPipe Hands 已本地化（vendor/mediapipe），加载失败明确提示，不再静默降级。
@@ -4960,11 +5487,240 @@
   let camOn = false, camStream = null, hands = null, handsBusy = false;
   let handReady = false, handLast = 0, camStartedAt = 0, modelFailShown = false;
   let sendFails = 0, lastSendErr = "", handsLaunched = false;
+  let cameraSession = 0, handsInitFailed = false;
   let vidTime = -1, vidStaleAt = 0;
   let cur = { x: 0.5, y: 0.5 }, curInit = false, prevX = 0.5, prevY = 0.5;
+  const DWELL_CONFIRM_SECONDS = 1.2;
   let lastFrame = 0, lastPulse = 0, dwellEl = null, dwellT = 0, dwellLost = 0;
   let hitEl = null, hitAt = 0, toastUntil = 0;
   const camGestureEl = document.getElementById("camGesture");
+
+  const palmDeck = window.AstraPalmDeck.create();
+  let palmDeckBase=0,palmDeckTarget=null,deckSuppressUntil=0,palmDeckSettlingUntil=0,palmSurface=null;
+  const visibleRealmElement=el=>!!(el&&el.isConnected&&el.getBoundingClientRect().width&&el.getBoundingClientRect().height);
+  function getRealmPalmSurface(){
+    if(state.screen==="tarot"&&tarotPicks.length<tarotConfig().count&&!dragging&&(!dialAnim||performance.now()<palmDeckSettlingUntil))return {
+      key:"tarot",element:dialWrap,gain:240,read:()=>dialAngle,apply:setDialAngle,
+      valid:()=>state.screen==="tarot"&&tarotPicks.length<tarotConfig().count,
+      settle:value=>slideDial(Math.round(value/DIAL_STEP)*DIAL_STEP,170),cancel:()=>setDialAngle(Math.round(dialAngle/DIAL_STEP)*DIAL_STEP)
+    };
+    if(state.screen==="mansion"&&mChosen===null&&!mSpinning&&!mDragging)return {
+      key:"mansion",element:mansionStage,gain:220,read:()=>mAngle,apply:setMAngle,
+      valid:()=>state.screen==="mansion"&&mChosen===null&&!mSpinning,
+      settle:value=>setMAngle(Math.round(value/MSTEP)*MSTEP),cancel:()=>{if(mChosen===null)setMAngle(Math.round(mAngle/MSTEP)*MSTEP);}
+    };
+    if(state.screen==="rune"&&runePicks.length<3&&!runePointer)return {
+      key:"rune",element:runePool,gain:-18,min:0,max:RUNE.length-1,read:()=>runeBrowsePosition,apply:setRuneBrowse,
+      valid:()=>state.screen==="rune"&&runePicks.length<3,
+      settle:value=>setRuneBrowse(Math.round(value)),cancel:()=>setRuneBrowse(Math.round(runeBrowsePosition))
+    };
+    if(state.screen==="oracle"&&oracleChosen===null&&!oracleBusy)return {
+      key:"oracle",element:oracleStage,gain:140,min:-8,max:8,read:()=>0,apply:value=>{oracleCup.style.rotate=value+"deg";},
+      valid:()=>state.screen==="oracle"&&oracleChosen===null&&!oracleBusy,
+      settle:()=>{oracleCup.style.rotate="0deg";oraclePreviewReady=true;oracleGestureConfirm.disabled=false;oracleCup.classList.add("gesture-ready");},cancel:clearOraclePreview
+    };
+    if(state.screen==="gua"&&guaLines.length===6){
+      const element=document.getElementById("guaInsight");return {
+        key:"gua",element,gain:5,min:0,max:1,read:()=>guaView==="change"?1:0,apply:value=>{element.style.setProperty("--gesture-view",value);},
+        valid:()=>state.screen==="gua"&&guaLines.length===6,
+        settle:value=>{guaView=Math.round(value)?"change":"base";renderGuaInsight();},cancel:()=>element.style.removeProperty("--gesture-view")
+      };
+    }
+    if(state.screen!=="reading"||!currentReading)return null;
+    const type=currentReading.type,workbench=document.querySelector('.reading-workbench[open]');if(!workbench)return null;
+    if(type==="number"||type==="mansion"){
+      const input=workbench.querySelector(type==="number"?'.orbit-slider':'.veil-slider'),element=workbench.querySelector(type==="number"?'.orbit-wheel':'.mansion-veil');
+      if(!visibleRealmElement(element)||!input)return null;
+      const original=Number(input.value),setValue=value=>{const v=String(Math.round(value));if(input.value!==v){input.value=v;input.dispatchEvent(new Event("input",{bubbles:true}));}};
+      return {key:"reading-"+type,element,gain:type==="number"?6:220,min:0,max:type==="number"?2:100,read:()=>Number(input.value),
+        valid:()=>state.screen==="reading"&&input.isConnected&&workbench.open,
+        apply:value=>{if(type==="number")element.style.setProperty("--turn",(value*120)+"deg");else element.style.setProperty("--veil",value+"%");},
+        settle:value=>{setValue(value);input.dispatchEvent(new Event("change",{bubbles:true}));},
+        cancel:()=>element.style.setProperty(type==="number"?'--turn':'--veil',type==="number"?(original*120)+"deg":original+"%")
+      };
+    }
+    if(type==="oracle"){
+      const element=workbench.querySelector('.scene-poem'),buttons=[...element?.querySelectorAll('button[data-choice]')||[]];if(!buttons.length)return null;
+      const clear=()=>buttons.forEach(b=>b.classList.remove("gesture-preview"));
+      return {key:"reading-oracle",element,gain:7,min:0,max:buttons.length-1,read:()=>Math.max(0,buttons.findIndex(b=>b.getAttribute("aria-pressed")==="true")),
+        valid:()=>state.screen==="reading"&&element.isConnected&&workbench.open,
+        apply:value=>{clear();buttons[Math.round(value)]?.classList.add("gesture-preview");},settle:value=>{clear();buttons[Math.round(value)]?.click();},cancel:clear};
+    }
+    return null;
+  }
+  function resetPalmDeck(){
+    if(palmSurface){palmSurface.element.classList.remove("palm-sweeping");palmSurface.cancel?.();}
+    palmSurface=null;palmDeckTarget=null;palmDeck.reset();deckSuppressUntil=0;palmDeckSettlingUntil=0;
+  }
+  function settlePalmDeck(now,cancel=false){
+    if(palmDeckTarget===null||!palmSurface)return;
+    const surface=palmSurface,target=palmDeckTarget;palmDeckTarget=null;palmSurface=null;
+    surface.element.classList.remove("palm-sweeping");
+    deckSuppressUntil=now+450;dwellEl=null;dwellT=0;hitEl=null;pinchTracker.reset();
+    if(cancel||surface.valid?.()===false){surface.cancel?.();return;}
+    if(surface.key==="tarot")palmDeckSettlingUntil=now+190;
+    surface.settle(target);
+    setGestureText(gestureWords("浏览已停稳 · 可以确认","Browsing settled · ready to confirm"));
+  }
+  function updatePalmDeck(lms,now){
+    const surface=getRealmPalmSurface();
+    const enabled=surface&&!heldGesture&&!document.querySelector('dialog[open],#gesturePracticePanel');
+    if(!enabled||!visibleRealmElement(surface.element)||(palmSurface&&palmSurface.key!==surface.key)){
+      palmDeck.update({now,enabled:false});settlePalmDeck(now,true);return now<deckSuppressUntil;
+    }
+    const ids=[0,5,9,13,17];let x=0,y=0;ids.forEach(i=>{x+=lms[i].x;y+=lms[i].y;});x=1-x/5;y/=5;
+    const sx=mapReach(x)*innerWidth,sy=mapReach(y)*innerHeight,hit=document.elementFromPoint(sx,sy);
+    const inside=sy>document.querySelector(".topbar").getBoundingClientRect().bottom&&camNearRect(surface.element.getBoundingClientRect(),sx,sy,18)&&!hit?.closest('#camWrap,dialog,.gesture-practice-panel');
+    const open=isPalmOpen(lms)&&window.AstraPinchCore.ratio(lms)>.5;
+    const result=palmDeck.update({x,y,now,open,enabled:true,inside});
+    if(result.phase==="start"){
+      if(surface.key==="tarot"&&dialAnim)stopDialSlide();palmDeckSettlingUntil=0;
+      palmSurface=surface;palmDeckBase=surface.read();surface.element.classList.add("palm-sweeping");pinchTracker.reset();dwellEl=null;dwellT=0;hitEl=null;
+    }
+    if(result.phase==="start"||result.phase==="move"){
+      palmDeckTarget=Math.max(surface.min??-Infinity,Math.min(surface.max??Infinity,palmDeckBase+result.distance*surface.gain));deckSuppressUntil=now+450;
+      setGestureText(gestureWords("张掌浏览中 · 停稳后确认","Palm browsing · stop before confirming"));return true;
+    }
+    if(result.phase==="end")settlePalmDeck(now,!open);
+    return now<deckSuppressUntil;
+  }
+
+  const cameraMode = document.getElementById("cameraMode");
+  const pinchTracker = window.AstraPinchCore.create();
+  let gestureMode = "hover", heldGesture = null, pinchGhost = null, pinchTarget = null;
+  try { if(localStorage.getItem("astra.gestureMode")==="pinch")gestureMode="pinch"; }catch(_){}
+  const gestureWords=(zh,en)=>window.AstraLocale.translate(lang==="en"?en:zh);
+  function refreshGestureModeUI(){
+    cameraMode.value=gestureMode;
+    document.getElementById("tarotGrip").textContent=gestureWords("下一张 ›","Next card ›");
+    document.getElementById("tarotSwipeHint").textContent=gestureWords("🖐 张掌对准牌带，左右滑手浏览 · 停稳后取牌","🖐 Open your palm over the deck and swipe sideways · stop before picking");
+    document.getElementById("gesturePractice").textContent=gestureWords("练习捏合 · 不抽牌","Practice a pinch · no draw");
+    document.getElementById("camMinimize").textContent=camWrap.classList.contains("is-collapsed")?gestureWords("展开画面","Show video"):gestureWords("收起画面","Hide video");
+    document.getElementById("cameraModeLabel").textContent=gestureWords("手势模式","Gesture mode");
+    cameraMode.options[0].textContent=gestureWords("张掌悬停","Open palm · dwell");
+    cameraMode.options[1].textContent=gestureWords("指尖仪式 · 捏合抓取","Fingertip ritual · pinch");
+    const realmHints={
+      rune:["张掌横滑浏览符石；捏起并放入高亮阵位，或点击选石。","Swipe an open palm to browse; pinch a stone into the highlighted slot, or click it."],
+      mansion:["张掌左右拨动星环；停稳后捏合中央星宿确认。","Swipe an open palm to turn the ring; stop and pinch the center to confirm."],
+      oracle:["张掌横摆预览摇筒；停稳后确认出签，上提签笺可展开原诗。","Swipe an open palm to rock the cup; confirm after stopping, then lift the letter to unfold."],
+      gua:["停在铜钱上1.2秒，只掷一爻；成卦后张掌横滑比较两卦。","Hold over the coins for 1.2s to cast one line; swipe to compare when complete."],
+      number:["解读中展开印记星轨，张掌滑动选择观察方向；原印记不变。","Open the observation orbit in your reading and swipe to choose a lens; the sigil stays fixed."]
+    };
+    for(const [key,id] of [["rune","runeGestureHint"],["mansion","mansionGestureHint"],["oracle","oracleGestureHint"],["gua","guaGestureHint"]])document.getElementById(id).textContent=realmHints[key][lang==="en"?1:0];
+    runePool.setAttribute("aria-label",realmText("浏览本局符石","Browse the rune stones"));
+    document.getElementById("runeNext").textContent=realmText("下一枚 ›","Next rune ›");document.getElementById("runeReset").textContent=realmText("重新选符","New rune draw");
+    oracleGestureConfirm.textContent=realmText("确认出签","Confirm the lot");refreshOracleVerse();
+    const realm=state.screen==="reading"?currentReading?.type:state.screen;
+    const tip=document.querySelector("#camGuide span");tip.removeAttribute("data-i18n");
+    tip.textContent=realmHints[realm]?realmHints[realm][lang==="en"?1:0]:gestureMode==="pinch"?gestureWords("塔罗：张掌左右滑动浏览；停稳后捏合抓牌，移入牌位松开。","Tarot: swipe an open palm to browse; stop, pinch a card, then release in its slot."):t("cgOpen");
+  }
+  function clearPinch(){
+    if(heldGesture?.kind==="oracle-letter")heldGesture.el.style.translate="";
+    document.querySelector('[data-screen="rune"] .rune-tray')?.classList.remove("is-gesture-holding");
+    if(heldGesture&&heldGesture.el)heldGesture.el.classList.remove("pinch-source");
+    if(pinchGhost)pinchGhost.remove();if(pinchTarget)pinchTarget.classList.remove("pinch-target");
+    document.querySelectorAll(".pinch-altar-active").forEach(el=>el.classList.remove("pinch-altar-active"));
+    slots.classList.remove("is-gesture-holding");heldGesture=null;pinchGhost=null;pinchTarget=null;
+  }
+  function cancelPinch(){
+    if(heldGesture&&heldGesture.kind==="range"&&heldGesture.el.isConnected){heldGesture.el.value=heldGesture.value;heldGesture.el.dispatchEvent(new Event("input",{bubbles:true}));}
+    if(heldGesture)setGestureText(gestureWords("已放回，张开指尖重新定位","Returned. Open your fingers to aim again."));
+    clearPinch();
+  }
+  function pinchAt(x,y){
+    const el=document.elementFromPoint(x,y);
+    const target=el&&el.closest('.rune-candidate:not(:disabled),.mansion-node,.mansion-center,.oracle-cup,.oracle-stick,.dial-card:not(.used),.dial-selector,input[type="range"]:not(:disabled),button:not(:disabled),.card[data-go]');
+    if(target===oracleCup&&(!oraclePreviewReady||oracleBusy||oracleChosen!==null))return null;
+    if(target===oracleStick&&oracleChosen===null)return null;
+    if(target?.matches('.mansion-node,.mansion-center')&&(mChosen!==null||mSpinning))return null;
+    return target;
+  }
+  function startPinch(x,y){
+    cancelPinch();const el=pinchAt(x,y);if(!el||el.matches(".tarot-drop-target,.rune-slot"))return;
+    if(el.matches(".rune-candidate")&&state.screen==="rune"){
+      const idx=Number(el.dataset.runeCandidate);if(runePicks.length>=3||runePicks.includes(idx))return;
+      heldGesture={kind:"rune-draw",el,idx,slot:runePicks.length};el.classList.add("pinch-source");
+      document.querySelector('[data-screen="rune"] .rune-tray').classList.add("is-gesture-holding");
+      pinchGhost=document.createElement("div");pinchGhost.className="pinch-ghost rune-draw-ghost";pinchGhost.append(el.querySelector("img").cloneNode(true),el.querySelector("b").cloneNode(true));pinchGhost.dataset.rune=String(idx);pinchGhost.setAttribute("aria-hidden","true");document.body.append(pinchGhost);
+      setGestureText(gestureWords("符石已拿起 · 放入高亮阵位后松开","Rune held · release in the highlighted position"));
+    }else if(el===oracleCup){
+      heldGesture={kind:"oracle-confirm",el};el.classList.add("pinch-source");setGestureText(gestureWords("签筒已停稳 · 松开确认出签","Cup settled · release to draw the lot"));
+    }else if(el===oracleStick){
+      heldGesture={kind:"oracle-letter",el,y,rect:el.getBoundingClientRect()};el.classList.add("pinch-source");setGestureText(gestureWords("捏住签笺 · 向上提起后松开","Letter held · lift upward and release"));
+    }else if(el.id==="practiceStar"){
+      heldGesture={kind:"practice",el};pinchGhost=document.createElement("div");pinchGhost.textContent="✦";pinchGhost.className="pinch-ghost practice-ghost";document.body.append(pinchGhost);
+      document.getElementById("practiceStatus").textContent=gestureWords("星点已拿起 · 移入光圈后松开","Star held · release inside the circle");
+    }else if(el.closest(".scene-rune-stones")&&el.matches("button")){
+      const altar=document.querySelector(".rune-drop");if(!altar)return;heldGesture={kind:"rune",el,altar};altar.classList.add("pinch-altar-active");
+      pinchGhost=document.createElement("div");pinchGhost.className="pinch-ghost rune-held";const stone=el.querySelector(".rune-touchstone");if(stone)pinchGhost.append(stone.cloneNode(true));document.body.append(pinchGhost);el.classList.add("pinch-source");
+      setGestureText(gestureWords("符石已拿起 · 移入阵心后松开","Rune held · release in the circle"));
+    }else if(el.matches(".dial-card,.dial-selector")&&state.screen==="tarot"){
+      if(dialAnim||tarotPicks.length>=tarotConfig().count)return;
+      const index=el.matches(".dial-selector")?focusedIndex:dialCards.findIndex(c=>c.el===el);
+      const card=dialCards[index];if(!card||card.used)return;
+      heldGesture={kind:"tarot",el,index,idx:card.idx,orient:Math.random()<.22?"逆":"正",spread:tarotSpreadId,slot:tarotPicks.length};
+      slots.classList.add("is-gesture-holding");pinchGhost=document.createElement("img");pinchGhost.src=BACK_URL;pinchGhost.dataset.card=String(card.idx);pinchGhost.dataset.orientation=heldGesture.orient;pinchGhost.alt="";pinchGhost.className="pinch-ghost";document.body.append(pinchGhost);el.classList.add("pinch-source");
+      setGestureText(gestureWords("持牌中 · 移入高亮牌位后松开","Card held · release in the highlighted slot"));
+    }else if(el.matches('input[type="range"]')){heldGesture={kind:"range",el,value:el.value};}
+    else{heldGesture={kind:"button",el};el.classList.add("pinch-source");setGestureText(gestureWords("已锁定 · 松开确认","Target held · release to confirm"));}
+    movePinch(x,y);
+  }
+  function movePinch(x,y){
+    if(!heldGesture)return;
+    if(!heldGesture.el.isConnected){cancelPinch();return;}
+    if(pinchTarget)pinchTarget.classList.remove("pinch-target");pinchTarget=null;
+    if(pinchGhost){pinchGhost.style.left=x+"px";pinchGhost.style.top=y+"px";}
+    if(heldGesture.kind==="rune-draw"){
+      const target=runeRow.querySelector('.rune-slot:not(:disabled)');if(target&&camNearRect(target.getBoundingClientRect(),x,y,0))pinchTarget=target;
+    }else if(heldGesture.kind==="oracle-letter"){
+      const dy=Math.max(-120,Math.min(0,y-heldGesture.y));heldGesture.el.style.translate="0px "+dy+"px";
+      if(dy<=-30&&x>=heldGesture.rect.left-45&&x<=heldGesture.rect.right+45)pinchTarget=heldGesture.el;
+    }else if(heldGesture.kind==="practice"||heldGesture.kind==="rune"){
+      const target=heldGesture.kind==="practice"?document.getElementById("practiceTarget"):heldGesture.altar;
+      if(target&&camNearRect(target.getBoundingClientRect(),x,y,0))pinchTarget=target;
+    }else if(heldGesture.kind==="tarot"){
+      const target=slots.querySelector('.tarot-drop-target:not(:disabled)');
+      if(target&&camNearRect(target.getBoundingClientRect(),x,y,0))pinchTarget=target;
+    }else if(heldGesture.kind==="range"){
+      const input=heldGesture.el,r=input.getBoundingClientRect(),min=Number(input.min)||0,max=input.max===""?100:Number(input.max),step=Number(input.step)||1;
+      if(r.width){const previous=input.value;input.value=String(min+Math.round(Math.max(0,Math.min(1,(x-r.left)/r.width))*(max-min)/step)*step);if(input.value!==previous)input.dispatchEvent(new Event("input",{bubbles:true}));}pinchTarget=input;
+    }else if(camNearRect(heldGesture.el.getBoundingClientRect(),x,y,8))pinchTarget=heldGesture.el;
+    if(pinchTarget)pinchTarget.classList.add("pinch-target");
+  }
+  function releasePinch(x,y){
+    if(!heldGesture)return;movePinch(x,y);const held=heldGesture,valid=!!pinchTarget;clearPinch();
+    if(held.kind==="rune-draw"){
+      if(valid&&state.screen==="rune"&&held.slot===runePicks.length)placeRuneCandidate(held.idx);
+    }else if(held.kind==="oracle-confirm"){
+      if(valid&&oraclePreviewReady&&oracleChosen===null&&!oracleBusy)oracleGestureConfirm.click();
+    }else if(held.kind==="oracle-letter"){
+      if(valid&&oracleChosen!==null&&oracleVerse.hidden)oracleUnfold.click();
+    }else if(held.kind==="practice"){
+      const status=document.getElementById("practiceStatus");if(status)status.textContent=valid?gestureWords("已完成！接下来可以用同样的动作抓牌。","Complete! Use the same gesture to pick a card."):gestureWords("落在光圈外，星点已放回，再试一次。","Outside the circle. The star returned; try again.");
+    }else if(held.kind==="rune"){if(valid&&held.el.isConnected)held.el.click();}
+    else if(held.kind==="tarot"){
+      if(valid&&state.screen==="tarot"&&held.spread===tarotSpreadId&&held.slot===tarotPicks.length&&dialCards[held.index]?.idx===held.idx&&!dialCards[held.index].used){pickCardByIndex(held.index,held.orient);setGestureText(gestureWords("牌已落定","Card placed"));}
+      else setGestureText(gestureWords("落点在牌位外 · 已放回","Outside the slot · card returned"));
+    }else if(held.kind==="range"){held.el.dispatchEvent(new Event("change",{bubbles:true}));}
+    else if(valid&&held.el.isConnected&&!held.el.disabled)held.el.click();
+  }
+  window.AstraPinch={start:startPinch,move:movePinch,release:releasePinch,cancel:cancelPinch,reset(){resetPalmDeck();cancelPinch();document.getElementById("gesturePracticePanel")?.remove();pinchTracker.reset();curInit=false;dwellEl=null;dwellT=0;hitEl=null;},isHolding:()=>!!heldGesture};
+  cameraMode.addEventListener("change",()=>{window.AstraPinch.reset();gestureMode=cameraMode.value==="pinch"?"pinch":"hover";try{localStorage.setItem("astra.gestureMode",gestureMode);}catch(_){}refreshGestureModeUI();setGestureText(gestureWords("张开手指，重新定位","Open your fingers to aim"));});
+  window.addEventListener("blur",()=>window.AstraPinch.reset());
+  document.addEventListener("visibilitychange",()=>{if(document.hidden)window.AstraPinch.reset();});
+  document.getElementById("camMinimize").addEventListener("click",()=>{const folded=camWrap.classList.toggle("is-collapsed");document.getElementById("camMinimize").setAttribute("aria-expanded",String(!folded));refreshGestureModeUI();});
+  document.getElementById("gesturePractice").addEventListener("click",()=>{
+    window.AstraPinch.reset();gestureMode="pinch";refreshGestureModeUI();
+    const panel=document.createElement("section");panel.id="gesturePracticePanel";panel.className="gesture-practice-panel";panel.setAttribute("aria-label",gestureWords("指尖练习","Pinch practice"));
+    const title=document.createElement("h3");title.textContent=gestureWords("让一颗星，落入光圈","Place a star in the circle");
+    const status=document.createElement("p");status.id="practiceStatus";status.setAttribute("role","status");status.textContent=gestureWords("张开指尖定位，捏住星点，移入右侧光圈后松开。","Aim with open fingers, pinch the star, and release in the circle on the right.");
+    const stage=document.createElement("div");stage.className="practice-stage";
+    const star=document.createElement("button");star.id="practiceStar";star.className="practice-star ghost-btn";star.textContent="✦";star.setAttribute("aria-label",gestureWords("练习星点","Practice star"));
+    const target=document.createElement("div");target.id="practiceTarget";target.className="practice-target";target.textContent=gestureWords("落点","Place here");
+    const close=document.createElement("button");close.className="ghost-btn";close.textContent=gestureWords("结束练习","Finish practice");close.addEventListener("click",()=>window.AstraPinch.reset());
+    stage.append(star,target);panel.append(title,status,stage,close);document.body.append(panel);
+  });
+  refreshGestureModeUI();
 
   // 可达映射：手不必伸到画面最边缘，画面中部 74% 的活动范围就能覆盖整屏
   // —— 左上角的返回按钮、四角的按钮才够得着
@@ -4991,17 +5747,21 @@
         camVideo.play().catch(e => console.warn("摄像头画面未播放：", e));
         camOn = true; window.__camOn = true;
         camWrap.hidden = false; retResize();
-        cameraToggle.textContent = t("cameraOn"); cameraToggle.classList.add("is-on");
+        cameraToggle.textContent = t("cameraOn"); cameraToggle.classList.add("is-on"); cameraToggle.setAttribute("aria-pressed", "true");
         camStartedAt = performance.now(); modelFailShown = false; handReady = false; handLast = 0;
-        sendFails = 0; lastSendErr = ""; handsLaunched = false; lastFrame = 0;
+        sendFails = 0; lastSendErr = ""; handsLaunched = false; handsInitFailed = false; lastFrame = 0;
+        const session = ++cameraSession;
         vidTime = 0; vidStaleAt = performance.now();
         setGestureText(t("camDetecting"));
-        // hands.js 是 async 引入，可能比首次点击更晚到位：等它最多 4s 再判定失败
-        whenHands(ok => {
-          if (!camOn) return;
-          if (ok && initHands()) { handsLaunched = true; pumpHands(); }
-          else modelFail();
-        }, 16);
+        // 公网首次加载需要下载 WASM 和模型；完成初始化后才开始计算识别超时。
+        whenHands(async ok => {
+          if (!camOn || session !== cameraSession) return;
+          const initialized = ok && await initHands();
+          if (!camOn || session !== cameraSession) return;
+          if (initialized) {
+            handsLaunched = true; camStartedAt = performance.now(); pumpHands();
+          } else { handsInitFailed = true; modelFail(); }
+        }, 720, session);
         requestAnimationFrame(camLoop);
       })
       .catch(err => {
@@ -5017,11 +5777,13 @@
   }
 
   function stopCamera() {
+    window.AstraPinch.reset();guaCoins.classList.remove("gesture-charging");guaCoins.style.removeProperty("--gesture-charge");
+    cameraSession++;
     camOn = false; window.__camOn = false;
     if (camStream) camStream.getTracks().forEach(tr => tr.stop());
     camStream = null; camVideo.srcObject = null;
     camWrap.hidden = true;
-    cameraToggle.textContent = t("cameraToggle"); cameraToggle.classList.remove("is-on");
+    cameraToggle.textContent = t("cameraToggle"); cameraToggle.classList.remove("is-on"); cameraToggle.setAttribute("aria-pressed", "false");
     hands = null; handReady = false; curInit = false;
     palmOpen = false; openVotes = closeVotes = 0;
     dwellEl = null; dwellT = 0; dwellLost = 0; hitEl = null; toastUntil = 0;
@@ -5029,17 +5791,20 @@
   }
 
   /* ---------------- MediaPipe Hands（本地 vendor/mediapipe，离线可用） ---------------- */
-  function whenHands(cb, tries) {
+  function whenHands(cb, tries, session) {
+    if (!camOn || session !== cameraSession) return;
     if (typeof Hands !== "undefined") return cb(true);
     if (tries <= 0) return cb(false);
-    setTimeout(() => whenHands(cb, tries - 1), 250);
+    setTimeout(() => whenHands(cb, tries - 1, session), 250);
   }
-  function initHands() {
+  async function initHands() {
     if (typeof Hands === "undefined") return false;   // 脚本未加载
     try {
-      hands = new Hands({ locateFile: (f) => "vendor/mediapipe/" + f });
-      hands.setOptions({ maxNumHands: 1, modelComplexity: 0, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
-      hands.onResults(onHandResults);
+      const engine = new Hands({ locateFile: (f) => new URL("vendor/mediapipe/" + f, document.baseURI).href });
+      hands = engine;
+      engine.setOptions({ maxNumHands: 1, modelComplexity: 0, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+      engine.onResults(res => { if (camOn && hands === engine) onHandResults(res); });
+      await engine.initialize();
       return true;
     } catch (e) { console.warn("MediaPipe Hands 初始化失败：", e); return false; }
   }
@@ -5081,10 +5846,15 @@
     if (handReady || !camOn) return;
     const waited = (performance.now() - camStartedAt) / 1000;
     if (waited < 1.2) return;
-    if (!handsLaunched) { if (waited > 8) modelFail(); else setGestureText(t("camLoading", [Math.round(waited)])); return; }
+    if (handsInitFailed) return;
+    if (!handsLaunched) {
+      if (waited > 180) setGestureText(t("camNoResult"));
+      else setGestureText(t("camLoading", [Math.round(waited)]));
+      return;
+    }
     if (camVideo.readyState < 2 || videoIsStale()) { setGestureText(t("camNoVideo")); return; }
     if (sendFails >= 3) { setGestureText(t("camSendFail") + "（" + lastSendErr + "）"); return; }
-    if (waited > 20) { modelFailShown = true; setGestureText(t("camNoResult")); return; }   // wasm 挂起：脚本在、有画面、但从不出结果
+    if (waited > 180) { modelFailShown = true; setGestureText(t("camNoResult")); return; }   // 首次推理也可能继续下载模型；给公网加载留足时间
     setGestureText(t("camLoading", [Math.round(waited)]));
   }
 
@@ -5106,26 +5876,40 @@
     else { closeVotes++; openVotes = 0; if (closeVotes >= 6) palmOpen = false; }
   }
 
-  /* ---------------- 手部结果：张开手掌 → 掌心 = 光标，唯一的交互 ---------------- */
+  /* Hand landmarks: the original palm/dwell mode and the optional fingertip/pinch mode. */
   function onHandResults(res) {
     handReady = true;                                  // 模型已出结果（无论有无手）
     const lms = res.multiHandLandmarks && res.multiHandLandmarks[0];
-    if (!lms) { handLast = 0; palmOpen = false; openVotes = closeVotes = 0; setGestureText(t("camNoHand")); return; }
-    votePalm(isPalmOpen(lms));
-    // 手在画面里但没张开：按「没有光标」处理，握拳 / 捏合都不产生任何动作
-    if (!palmOpen) { handLast = 0; setGestureText(t("camNeedOpen")); return; }
-    handLast = performance.now();
-    // 掌心中心（镜像：MediaPipe 读原始像素，故 x 取 1-x）
-    const ids = [0, 5, 9, 13, 17];
-    let cx = 0, cy = 0;
-    ids.forEach(i => { cx += lms[i].x; cy += lms[i].y; });
-    cx = 1 - cx / ids.length; cy = cy / ids.length;
+    const now=performance.now();
+    if (!lms || (gestureMode === "pinch" && window.AstraPinchCore.ratio(lms)===null)) {
+      if(gestureMode==="pinch"&&pinchTracker.update(null,now)==="lost")cancelPinch();
+      palmDeck.update({now,enabled:false});settlePalmDeck(now,true);
+      handLast=0;palmOpen=false;openVotes=closeVotes=0;setGestureText(t("camNoHand"));return;
+    }
+    const palmBrowsing=updatePalmDeck(lms,now);
+    let edge=null,cx=0,cy=0;
+    if(gestureMode==="pinch"){
+      if(!palmBrowsing)edge=pinchTracker.update(lms,now);if(edge==="lost")cancelPinch();
+      cx=1-(lms[4].x+lms[8].x)/2;cy=(lms[4].y+lms[8].y)/2;
+    }else{
+      votePalm(isPalmOpen(lms));
+      if(!palmOpen){handLast=0;setGestureText(t("camNeedOpen"));return;}
+      const ids=[0,5,9,13,17];ids.forEach(i=>{cx+=lms[i].x;cy+=lms[i].y;});cx=1-cx/ids.length;cy/=ids.length;
+    }
+    handLast=now;
     if (!curInit) { cur.x = cx; cur.y = cy; curInit = true; }
     else {
       const d0 = Math.hypot(cx - cur.x, cy - cur.y);
       // 自适应平滑：手稳时几乎不动、手快时跟得紧；大跳变直接跟上
       const k = d0 > 0.35 ? 1 : Math.min(0.62, 0.24 + d0 * 2.4);
       cur.x += (cx - cur.x) * k; cur.y += (cy - cur.y) * k;
+    }
+    if(palmBrowsing)return;
+    if(gestureMode==="pinch"){
+      const x=mapReach(cur.x)*innerWidth,y=mapReach(cur.y)*innerHeight;
+      if(edge==="start")startPinch(x,y);else if(edge==="release")releasePinch(x,y);
+      else if(!heldGesture)setGestureText(gestureWords("指尖定位 · 捏合后再松开确认","Aim with fingertips · pinch and release to confirm"));
+      return;
     }
     if (performance.now() > toastUntil) setGestureText(t("camHandOn"));   // 刚命中的那 0.9s 保留「✓ 已选中」
   }
@@ -5138,8 +5922,11 @@
   function camHitOne(sx, sy) {
     const hit = document.elementFromPoint(sx, sy);
     if (!hit) return null;
-    const el = hit.closest(".dial-card:not(.used), .dial-selector, button:not([disabled]), .card[data-go]");
+    const el = hit.closest(".rune-candidate:not(:disabled),.mansion-node,.mansion-center,.oracle-cup,.oracle-stick,.dial-card:not(.used), .dial-selector, button:not([disabled]), .card[data-go]");
     if (!el || el.classList.contains("used")) return null;
+    if(el.matches(".oracle-cup")&&(!oraclePreviewReady||oracleBusy||oracleChosen!==null))return null;
+    if(el.matches(".oracle-stick")&&oracleChosen===null)return null;
+    if(el.matches(".mansion-node,.mansion-center")&&(mChosen!==null||mSpinning))return null;
     const r = el.getBoundingClientRect();
     if (!r.width || !r.height) return null;
     // 未激活舞台里的按钮仍在 DOM 中，别让隔空光标误触
@@ -5174,9 +5961,11 @@
     const dt = lastFrame ? Math.min(0.1, (ts - lastFrame) / 1000) : 0.016;
     lastFrame = ts;
     if (!handReady) diagnoseGesture();                                          // 一直没出结果：说清卡在哪一步
-    const fresh = handLast && performance.now() - handLast < 500;             // 手 0.5s 内出现过才有效
+    const fresh = handLast && performance.now() - handLast < (gestureMode === "pinch" ? 350 : 500);             // 手 0.5s 内出现过才有效
     const W = window.innerWidth, H = window.innerHeight;
     if (!fresh) {
+      if(gestureMode==="pinch"&&pinchTracker.update(null,performance.now())==="lost")cancelPinch();
+      palmDeck.update({now:performance.now(),enabled:false});settlePalmDeck(performance.now(),true);
       dwellEl = null; dwellT = 0; dwellLost = 0;
       drawReticle(null, 0, null, 0);
       return;
@@ -5190,6 +5979,14 @@
       if (!reduced && speed > 0.55 && performance.now() - lastPulse > 420) { window.__particles.pulseRipple(ndx, ndy); lastPulse = performance.now(); }
     }
     prevX = cur.x; prevY = cur.y;
+    if(palmDeckTarget!==null&&palmSurface){
+      if(palmSurface.valid?.()===false){resetPalmDeck();}
+      else {const factor=1-Math.exp(-dt/.045);palmSurface.value=(palmSurface.value??palmDeckBase)+(palmDeckTarget-(palmSurface.value??palmDeckBase))*factor;palmSurface.apply(palmSurface.value);}
+    }
+    if(palmDeck.active||performance.now()<deckSuppressUntil){dwellEl=null;dwellT=0;drawReticle(sx,sy,null,0);return;}
+    if(gestureMode==="pinch"){
+      dwellEl=null;dwellT=0;movePinch(sx,sy);drawReticle(sx,sy,pinchTarget||pinchAt(sx,sy),0);return;
+    }
     const now = performance.now();
     let over = camElementAt(sx, sy);
     // 目标滞回：相邻按钮之间常只有十几 px 缝隙，手抖会让光标在两个按钮间来回跳，
@@ -5209,7 +6006,7 @@
     if (over) {
       dwellLost = now;
       dwellT += dt;
-      if (dwellT > 0.8 && !over.classList.contains("picked") && !over.classList.contains("used")) fireDwell(over);
+      if (dwellT >= DWELL_CONFIRM_SECONDS && !over.classList.contains("picked") && !over.classList.contains("used")) fireDwell(over);
     } else dwellT = 0;
     drawReticle(sx, sy, over, dwellT);
   }
@@ -5222,11 +6019,13 @@
     setGestureText(t("camHit", [label]));
     el.classList.add("cam-hit");
     setTimeout(() => el.classList.remove("cam-hit"), 460);
-    el.click();
+    if(el===oracleCup){oracleGestureConfirm.click();}else{el.click();}
   }
 
   // 全屏光环：跟随手掌，命中可交互元素时画出驻留进度环 + 高亮框
   function drawReticle(sx, sy, over, t) {
+    guaCoins.classList.toggle("gesture-charging",over===guaCoins&&!guaCoins.disabled);
+    guaCoins.style.setProperty("--gesture-charge",String(over===guaCoins?Math.min(t/DWELL_CONFIRM_SECONDS,1):0));
     if (!retCtx) return;
     const W = window.innerWidth, H = window.innerHeight;
     retCtx.clearRect(0, 0, W, H);
@@ -5248,13 +6047,13 @@
     retCtx.moveTo(sx, sy + 28); retCtx.lineTo(sx, sy + 36);
     retCtx.stroke();
     if (over) {
-      // 驻留进度环（紫色），填满约 0.8s 即自动触发
+      // 驻留进度环（紫色），填满约 1.2s 即自动触发
       retCtx.lineWidth = 4;
       retCtx.strokeStyle = "#A970FF";
       retCtx.shadowColor = "rgba(169,112,255,0.9)";
       retCtx.shadowBlur = 14;
       retCtx.beginPath();
-      retCtx.arc(sx, sy, 34, -Math.PI / 2, -Math.PI / 2 + Math.min(t / 0.8, 1) * Math.PI * 2);
+      retCtx.arc(sx, sy, 34, -Math.PI / 2, -Math.PI / 2 + Math.min(t / DWELL_CONFIRM_SECONDS, 1) * Math.PI * 2);
       retCtx.stroke();
       // 命中元素高亮描边
       const r = over.getBoundingClientRect();
@@ -5267,15 +6066,11 @@
   }
 
   /* ---------------- 跳过揭晓 / Esc 返回 / 顶栏静默隐去 ---------------- */
-  if (revealSkip) revealSkip.addEventListener("click", e => { e.stopPropagation(); finishReveal(); });
-  const readingScroller = document.querySelector('.screen[data-screen="reading"]');
-  if (readingScroller) {
-    readingScroller.addEventListener("pointerdown", () => { if (revealActive) finishReveal(); });
-  }
   document.addEventListener("keydown", e => {
     if (e.key !== "Escape") return;
+    if (document.querySelector("dialog[open]")) return;
+    if (!shareModal.hidden) { closeShareModal(); document.getElementById("readingShare").focus(); return; }
     if (camOn) { stopCamera(); return; }
-    if (state.screen === "reading" && revealActive) { finishReveal(); return; }
     if (state.screen !== "home") switchScreen("home");
   });
 
@@ -5292,7 +6087,84 @@
 
   /* 初始进入 home 时若离线无粒子，至少跑一次 resize 占位 */
 
+  function describeDraw(type, data) {
+    const facts = type === "number" && !/^\d{1,9}$/.test(String(data.raw || ""))
+      ? Object.assign({}, data, { raw: null, symbol: numSymbol(data.symbolIdx), theme: numThemeStr(data.symbolIdx), symbolMeaning: numLens(data.symbolIdx)[0], reflectionQuestion: numLens(data.symbolIdx)[1] })
+      : apiPayload(type, data);
+    if (type === "tarot") facts.cards.forEach(card => { card.keyword = TAROT[card.idx][lang === "en" ? 3 : 1]; });
+    if (type === "rune") { facts.meanings = data.runes.map(i => runeM(RUNE[i])); facts.glyphs = data.runes.map(i => RUNE[i].g); }
+    if (type === "mansion") facts.imagery = mansionImg(MANSION[data.idx]);
+    return facts;
+  }
+  function currentDrawFacts(type) {
+    const revealId = { tarot: "tarotReveal", rune: "runeReveal", number: "numReveal", mansion: "mansionPick", oracle: "oracleReveal" }[type];
+    const reveal = document.getElementById(revealId);
+    if (!reveal || reveal.disabled) return null;
+    if (type === "tarot" && tarotPicks.length === tarotConfig().count) return describeDraw(type, tarotDrawData());
+    if (type === "rune" && runePicks.length === 3) return describeDraw(type, { runes: runePicks });
+    if (type === "number" && numData) return describeDraw(type, numData);
+    if (type === "mansion" && mChosen !== null) return describeDraw(type, { idx: mChosen });
+    if (type === "oracle" && oracleChosen !== null) return describeDraw(type, { sign: oracleChosen });
+    return null;
+  }
+
+  Object.assign(I18N.zh, window.AstraExperience.translations.zh);
+  Object.assign(I18N.en, window.AstraExperience.translations.en);
+  window.astraExperience = new window.AstraExperience({
+    bgmVolume: () => Math.round(bgmVolume * 100), setBgmVolume, drawFacts: currentDrawFacts, describeDraw,
+    cancelEntry: () => { if (state.screen === "home" || gateFlight || identityFlight || doorFlight) cancelJourneyTransition(); },
+    lang: () => lang, screen: () => state.screen, current: () => currentReading,
+    motion: calm => { reduced = !!calm || !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); },
+    api: path => api(path), healthy: () => apiHealthy, features: () => apiFeatures, refresh: () => applyI18nStatic(),
+    home: () => {
+      cancelJourneyTransition();
+      journey.entered = false; journey.roleChosen = false; journey.identity = null; journey.busy = false;
+      clearTimeout(gateAutoTimer); gateScene.classList.remove("is-open"); applyFated();
+      switchScreen("home"); setStage("gate", true);
+    },
+    beginJourney: () => {
+      clearTimeout(gateAutoTimer);
+      if (state.screen === "home" && journey.stage === "gate") { openGate(true); return; }
+      cancelJourneyTransition(); journey.entered = true;
+      switchScreen("home"); setStage("identity", true); updateIdChip();
+    },
+    explore: skipIdentity => {
+      if (state.screen === "home" && journey.stage === "gate") { openGate(true, !!skipIdentity); return; }
+      clearTimeout(gateAutoTimer); cancelJourneyTransition(); journey.entered = true;
+      if (skipIdentity) { journey.identity = null; journey.roleChosen = true; applyFated(); }
+      applyFated(); switchScreen("home"); setStage(journey.roleChosen ? "path" : "identity", true); updateIdChip();
+    },
+    open: mod => { seedQuestion(mod); switchScreen(mod); },
+    retry: () => { const r = pendingReading || currentReading; if (r) showReading(r.type, r.data); },
+    back: () => {
+      if (!currentReading) return;
+      if (currentReading.replayed || currentReading.shared) visitedModules.delete(currentReading.type);
+      switchScreen(currentReading.type);
+    },
+    restore: saved => {
+      loadToken++; if (readingAbort) readingAbort.abort(); clearInterval(loadTimer); clearInterval(loreTimer);
+      readingLoading.hidden = true; document.getElementById("readingRecovery").hidden = true;
+      vortex.classList.add("hide");
+      lastModule = saved.type;
+      currentReading = JSON.parse(JSON.stringify(saved)); currentReading.replayed = true; window.__reading = currentReading;
+      if (["zh","en"].includes(window.AstraLocale.get())&&(saved.language === "zh" || saved.language === "en")) {lang=saved.language;window.AstraLocale.set(lang);}
+      // Refresh only the known incorrect built-in numeric sample; user notes and live/shared reports stay as saved.
+      if (saved.type === "number" && !saved.isLive && !saved.shared && saved.r.readings.some(item => /约到第|resolving to energy No\./.test(item.text))) {
+        currentReading.r = mockReading("number", Object.assign({}, saved.data, { question: saved.r.question || saved.data.question || "" }));
+      }
+      applyI18nStatic(); document.documentElement.lang = window.AstraLocale.get()==="zh"?"zh-CN":window.AstraLocale.get();
+      readingTitle.textContent = t(readingTitleKey(saved.type));
+      switchScreen("reading"); renderStage(saved.type, saved.data); renderReading(currentReading.r, currentReading.isLive, { instant: true });
+      setReadingBanner(saved.shared ? "share" : saved.isLive ? "live" : "demo");
+    }
+  });
+  document.getElementById("readingRetry").addEventListener("click", () => window.astraExperience.retry());
+  document.getElementById("readingBack").addEventListener("click", () => window.astraExperience.back());
+  document.querySelectorAll(".screen").forEach(s => { s.inert = !s.classList.contains("is-active"); });
+
   /* 应用初始语言（静态 + 顶栏 + 当前屏动态文案） */
+  installReadingLanguageControls();window.AstraLocale.start();
+  themeUIReady = true;
   applyLang();
   checkHealth();                                 // 探测后端/密钥，决定首页状态文案
   restoreFromShare();                            // 带 #s= 的分享链接：直接回放解读

@@ -168,7 +168,8 @@
       shareBasePh: "https://用户名.github.io/HW05/",
       shareBaseNote: "部署后会自动使用当前站点地址；本地预览先填这里，生成的链接部署后即可打开。",
       shareNoBase: "先填写站点公开地址，部署后链接自动可用",
-      shareBanner: "来自分享 · 星图回放", shareBad: "分享链接无效或已损坏",
+      shareBanner: "来自分享 · 星图回放", shareBad: "无法打开星图，请让发送者重新复制完整的分享链接。",
+      shareManualCopy: "请长按链接并选择「复制」。",
       orientUp: "正位", orientRev: "逆位", orientUpShort: "正", orientRevShort: "逆",
       lblBaseHex: "本卦", lblChangeHex: "变卦",
       hexInfo: "第 {{0}} 卦 · 变：{{1}}",
@@ -366,7 +367,8 @@
       shareBasePh: "https://username.github.io/HW05/",
       shareBaseNote: "Once deployed, the current site URL is used automatically. Fill this in to preview working links locally.",
       shareNoBase: "Add your public site URL to create a shareable link",
-      shareBanner: "Shared reading · replay", shareBad: "Share link is invalid or corrupted",
+      shareBanner: "Shared reading · replay", shareBad: "Could not open this reading. Ask the sender to copy and send the full link again.",
+      shareManualCopy: "Press and hold the link to copy it.",
       orientUp: "Upright", orientRev: "Reversed", orientUpShort: "Up", orientRevShort: "Rev",
       lblBaseHex: "Base", lblChangeHex: "Changed",
       hexInfo: "Hexagram {{0}} · Changes to: {{1}}",
@@ -1730,86 +1732,53 @@
   let currentReading = null;        // { type, data, r } —— 供朗读 / 导出复用
   let pendingReading = null;        // 正在请求的解读，语言切换时据此重发
   let loadTimer = null, loadToken = 0, loadStarted = 0, loadType = null, loadFinished = false;
-  let loreTimer = null, loreIdx = 0;
+  let loreTimer = null;
   const rlRitual = document.getElementById("rlRitual");
   const rlCosmos = document.getElementById("rlCosmos");
   const rlDrawBtn = document.getElementById("rlDraw");
   let loadData = null, loadP = 6, ritualItems = [], ritualWinEls = [], ritualTube = null;
   const LOAD_DESC = { tarot: "ldTarot", gua: "ldGua", number: "ldNumber", mansion: "ldMansion", rune: "ldRune", oracle: "ldOracle" };
-  // 等待期的反思提示：轮播展示，带 mod 的优先匹配当前模块
-  const LORE = [
-    {
-        "mod": "tarot",
-        "zh": "把三张牌当作三个视角：哪些属于已经发生的事，哪些仍由你选择？",
-        "en": "Treat the three cards as three viewpoints. What has already happened, and what can you still choose?"
-    },
-    {
-        "mod": "gua",
-        "zh": "等铜钱落定，先分清眼前哪些事可以改变，哪些需要等待。",
-        "en": "As the coins settle, consider what you can change now and what may need time."
-    },
-    {
-        "mod": "mansion",
-        "zh": "借一个星宿意象换个角度，再看看你最在意的那件事。",
-        "en": "Borrow a star image as a different viewpoint on the matter you care about."
-    },
-    {
-        "mod": "rune",
-        "zh": "三枚符石已为这次解读留下印记；不必重掷，可以先理一理所问。",
-        "en": "These three runes stay with this reading. There is no need to cast again; take a moment with your question."
-    },
-    {
-        "mod": "number",
-        "zh": "数字取象使用本站十二枚印记映射，给反思一个入口，不判断你的性格或命运。",
-        "en": "This app uses twelve custom symbols for number reflection, offering a prompt rather than a judgment about personality or fate."
-    },
-    {
-        "mod": "oracle",
-        "zh": "先读懂签诗中的一个意象，再想它能否帮你描述眼前的处境。",
-        "en": "Notice one image in the poem, then consider whether it helps you describe your situation."
-    },
-    {
-        "zh": "此刻，你最希望理清的是一个事实、一种感受，还是一个选择？",
-        "en": "What would you most like to clarify: a fact, a feeling, or a choice?"
-    },
-    {
-        "zh": "给问题留一点空白，也给自己的解释留一点位置。",
-        "en": "Leave a little space in the question, and a little room for your own interpretation."
-    },
-    {
-        "zh": "先想一件今天能够试做的小事，解读之后再决定是否行动。",
-        "en": "Think of one small thing you could try today. Decide after reading whether it fits."
-    },
-    {
-        "zh": "你取到的象征已经保留，返回上一页也不会重新抽取。",
-        "en": "Your symbols are preserved. Returning to the previous step will not draw them again."
-    },
-    {
-        "zh": "星语只是另一种视角；是否共鸣，仍由你判断。",
-        "en": "This reading offers another viewpoint. You decide what resonates."
-    },
-    {
-        "zh": "等待时，可以先写下：什么新信息会真正帮助我作决定？",
-        "en": "While you wait, consider what new information would actually help you make a decision."
+  let loreLine = null, loreDeck = [], loreType = null, loreFade = null;
+  function nextLore() {
+    const { general, modules } = window.AstraStarNotes;
+    const own = modules[loadType] || [];
+    if (loreType !== loadType || !loreDeck.length) {
+      const firstInModule = loreType !== loadType;
+      loreType = loadType;
+      loreDeck = [...own, ...general];
+      for (let i = loreDeck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [loreDeck[i], loreDeck[j]] = [loreDeck[j], loreDeck[i]];
+      }
+      if (firstInModule && own.length) {
+        const first = loreDeck.findIndex(line => own.includes(line));
+        [loreDeck[0], loreDeck[first]] = [loreDeck[first], loreDeck[0]];
+      } else if (loreDeck[0] === loreLine && loreDeck.length > 1) {
+        [loreDeck[0], loreDeck[1]] = [loreDeck[1], loreDeck[0]];
+      }
     }
-];
-  const LORE_GEN = LORE.filter(x => !x.mod);
-  const LORE_MOD = {};
-  LORE.forEach(x => { if (x.mod) (LORE_MOD[x.mod] = LORE_MOD[x.mod] || []).push(x); });
-  function lorePick(first) {
-    const mod = LORE_MOD[loadType] || [];
-    const pool = (mod.length && (first || Math.random() < 0.62)) ? mod : LORE_GEN;
-    let i = Math.floor(Math.random() * pool.length);
-    if (pool.length > 1 && pool[i] === LORE[loreIdx]) i = (i + 1) % pool.length;
-    return LORE.indexOf(pool[i]);
+    loreLine = loreDeck.shift();
   }
   function paintLore(next) {
     const node = document.getElementById("rlLore");
     if (!node) return;
-    if (next) loreIdx = lorePick();
-    const line = LORE[loreIdx][lang === "en" ? "en" : "zh"];
+    if (next || !loreLine) nextLore();
+    clearTimeout(loreFade);
+    const line = loreLine[window.AstraLocale.get()];
+    if (!next || reduced) {
+      node.textContent = "✦ " + line;
+      node.classList.remove("fade");
+      return;
+    }
     node.classList.add("fade");
-    setTimeout(() => { node.textContent = "✦ " + line; node.classList.remove("fade"); }, 260);
+    loreFade = setTimeout(() => {
+      node.textContent = "✦ " + line;
+      node.classList.remove("fade");
+    }, 260);
+  }
+  function scheduleLore() {
+    clearInterval(loreTimer);
+    loreTimer = setInterval(() => paintLore(true), 6500);
   }
 
   function loadElapsed() { return Math.max(0, Math.round((Date.now() - loadStarted) / 1000)); }
@@ -1968,10 +1937,9 @@
     buildRitual(type, loadData);
     setLoadProgress(6, false);
     updateLoadElapsed();
-    loreIdx = lorePick(true);
+    nextLore();
     paintLore(false);
-    clearInterval(loreTimer);
-    loreTimer = setInterval(() => paintLore(true), 5200);
+    scheduleLore();
     loadTimer = setInterval(() => {
       if (loadFinished) { clearInterval(loadTimer); loadTimer = null; return; }
       const p = 6 + 88 * (1 - Math.exp(-(Date.now() - loadStarted) / 1800));
@@ -2001,14 +1969,12 @@
       if (wait) setTimeout(ready, wait); else ready();
     });
   }
-  // 等待卡可点：换一条星语 + 星尘涟漪，让等待有事可做
-  function swapLore(e) {
-    if (e) e.stopPropagation();
+  function swapLore() {
     paintLore(true);
+    scheduleLore();
     if (window.__particles) window.__particles.pulseRipple();
     sfx("tick");
   }
-  if (readingLoading) readingLoading.addEventListener("click", () => swapLore());
   if (rlDrawBtn) rlDrawBtn.addEventListener("click", swapLore);
 
   function readingScrollTarget() {
@@ -2232,7 +2198,7 @@
     } else if (type === "rune" && Array.isArray(p.runes)) {
       p.runeNames = p.runes.map(i => runeCard(RUNE[i]));
     } else if (type === "number") {
-      Object.assign(p, numberFacts(p.raw));
+      if (!p.rawHidden) Object.assign(p, numberFacts(p.raw));
       p.themeIdx = p.symbolIdx; p.symbol = numSymbol(p.symbolIdx); p.theme = numThemeStr(p.themeIdx);
       p.symbolMeaning = numLens(p.symbolIdx)[0]; p.reflectionQuestion = numLens(p.symbolIdx)[1];
     } else if (type === "oracle") {
@@ -2651,7 +2617,6 @@
   const shareClose = document.getElementById("shareClose");
   const shareBaseRow = document.getElementById("shareBaseRow");
   const shareBaseInput = document.getElementById("shareBaseInput");
-  let shareGeneration = 0;
 
   function isLocalOrigin() {
     const h = location.hostname || "";
@@ -2685,7 +2650,7 @@
     for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
     return out;
   }
-  async function makeShareLink() {
+  function makeShareLink() {
     const payload = JSON.parse(JSON.stringify({ v: 1, t: currentReading.type, d: currentReading.data, r: currentReading.r, l: currentReading.language || lang, uiLocale:window.AstraLocale.get(), ol:currentReading.outputLanguage||currentReading.r?.outputLanguage||currentReading.language||lang, live: !!currentReading.isLive, ts: Date.now() }));
     if (!document.getElementById("shareIncludeQuestion").checked) {
       delete payload.d.question; delete payload.d.topic; delete payload.d.optionA; delete payload.d.optionB;
@@ -2703,34 +2668,23 @@
       }
     }
     document.getElementById("sharePreview").textContent = t(document.getElementById("shareIncludeQuestion").checked ? "uxShareWithQuestion" : "uxShareWithoutQuestion");
-    const json = JSON.stringify(payload);
-    let code = null;
-    if (window.CompressionStream) {
-      try {
-        const stream = new Blob([json]).stream().pipeThrough(new CompressionStream("deflate-raw"));
-        code = "z" + b64urlEncode(new Uint8Array(await new Response(stream).arrayBuffer()));
-      } catch (e) { code = null; }
-    }
-    if (!code) code = "j" + b64urlEncode(new TextEncoder().encode(json));
+    const bytes = new TextEncoder().encode(JSON.stringify(payload));
+    if (bytes.length > SHARE_BYTE_LIMIT) throw new Error("share too large");
+    const code = "z" + b64urlEncode(window.fflate.deflateSync(bytes, { level: 9 }));
     const base = publicShareBase();
     return base ? base + "#s=" + code : "";
   }
-  async function decodeShareCode(code) {
-    if (code.length > 150000) throw new Error("share too large");
+  const SHARE_BYTE_LIMIT = 150000; // Bound both the encoded payload and its inflated bytes.
+  function decodeShareCode(code) {
+    if (!/^[zj][A-Za-z0-9_-]+$/.test(code) || code.length > SHARE_BYTE_LIMIT * 2) {
+      throw new Error("invalid share code");
+    }
     let bytes = b64urlDecode(code.slice(1));
     if (code[0] === "z") {
-      const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
-      const reader = stream.getReader();
-      const chunks = []; let size = 0;
-      while (true) {
-        const { done, value } = await reader.read(); if (done) break;
-        size += value.length; if (size > 150000) { await reader.cancel(); throw new Error("share too large"); }
-        chunks.push(value);
-      }
-      bytes = new Uint8Array(size); let offset = 0;
-      chunks.forEach(chunk => { bytes.set(chunk, offset); offset += chunk.length; });
-    } else if (code[0] !== "j") throw new Error("bad tag");
-    return JSON.parse(new TextDecoder().decode(bytes));
+      bytes = window.fflate.inflateSync(bytes, { out: new Uint8Array(SHARE_BYTE_LIMIT + 1) });
+    }
+    if (bytes.length > SHARE_BYTE_LIMIT) throw new Error("share too large");
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
   }
   const SHARE_TYPES = { tarot: 1, gua: 1, number: 1, mansion: 1, rune: 1, oracle: 1 };
   function readingTitleKey(type) {
@@ -2738,23 +2692,20 @@
       : type === "rune" ? "rdRune" : type === "oracle" ? "rdOracle" : "rdNumber";
   }
   function closeShareModal() {
-    shareGeneration++;
     shareModal.close(); shareModal.hidden = true;
     document.getElementById("readingShare").focus();
   }
-  async function refreshShareLink() {
-    const generation = ++shareGeneration;
-    const reading = currentReading;
-    setShareCopyEnabled(false); shareInput.value = t("shareMaking");
+  function refreshShareLink() {
+    setShareCopyEnabled(false);
     try {
-      const link = await makeShareLink();
-      if (generation !== shareGeneration || shareModal.hidden || currentReading !== reading) return;
-      shareInput.value = link || t("shareNoBase"); setShareCopyEnabled(!!link);
+      const link = makeShareLink();
+      shareInput.value = link || t("shareNoBase");
+      setShareCopyEnabled(!!link);
     } catch (_) {
-      if (generation === shareGeneration && !shareModal.hidden) shareInput.value = t("shareBad");
+      shareInput.value = t("shareBad");
     }
   }
-  async function openShareModal() {
+  function openShareModal() {
     if (!currentReading || !shareModal) return;
     shareModal.hidden = false;
     if (!shareModal.open) shareModal.showModal();
@@ -2762,7 +2713,7 @@
     document.getElementById("shareClose").focus();
     if (shareBaseRow) shareBaseRow.hidden = !isLocalOrigin();
     if (shareBaseInput) shareBaseInput.value = getShareBase();
-    await refreshShareLink();
+    refreshShareLink();
     sfx("tick");
   }
   function initReadingShare() {
@@ -2774,10 +2725,10 @@
     shareModal.addEventListener("click", e => { if (e.target === shareModal) closeShareModal(); });
     if (shareClose) shareClose.addEventListener("click", () => { closeShareModal(); });
     if (shareBaseInput) {
-      const commitBase = async () => {
+      const commitBase = () => {
         const v = shareBaseInput.value.trim();
         try { if (v) localStorage.setItem(SHARE_BASE_KEY, v); else localStorage.removeItem(SHARE_BASE_KEY); } catch (e) {}
-        await refreshShareLink();
+        refreshShareLink();
       };
       shareBaseInput.addEventListener("change", commitBase);
       shareBaseInput.addEventListener("keydown", e => {
@@ -2788,13 +2739,19 @@
       if (!shareInput || shareCopy.disabled) return;
       let ok = false;
       try { await navigator.clipboard.writeText(shareInput.value); ok = true; } catch (e) { ok = false; }
-      if (!ok) { try { shareInput.focus(); shareInput.select(); ok = document.execCommand("copy"); } catch (e) { ok = false; } }
+      if (!ok) {
+        shareInput.focus();
+        shareInput.select();
+        shareInput.setSelectionRange(0, shareInput.value.length);
+        try { ok = document.execCommand("copy"); } catch (_) {}
+        if (!ok) document.getElementById("sharePreview").textContent = t("shareManualCopy");
+      }
       shareCopy.textContent = ok ? t("shareCopied") : t("shareCopy");
       setTimeout(() => { if (shareCopy) shareCopy.textContent = t("shareCopy"); }, 1600);
     });
   }
   function validSharedReading(p) {
-    if (!p || !p.r || !p.d || !SHARE_TYPES[p.t] || typeof p.d !== "object" || typeof p.r.tone !== "string" || typeof p.r.synthesis !== "string" || !Array.isArray(p.r.readings) || !p.r.readings.length || p.r.readings.length > (p.t === "tarot" ? 5 : 3) || !Array.isArray(p.r.actions) || p.r.actions.length > 3 || p.r.actions.some(x => typeof x !== "string") || p.r.readings.some(x => !x || typeof x.text !== "string")) return false;
+    if (!p || p.v !== 1 || !p.r || !p.d || !Object.prototype.hasOwnProperty.call(SHARE_TYPES, p.t) || typeof p.d !== "object" || typeof p.r.tone !== "string" || typeof p.r.synthesis !== "string" || !Array.isArray(p.r.readings) || !p.r.readings.length || p.r.readings.length > (p.t === "tarot" ? 5 : 3) || !Array.isArray(p.r.actions) || p.r.actions.length > 3 || p.r.actions.some(x => typeof x !== "string") || p.r.readings.some(x => !x || typeof x.text !== "string")) return false;
     const d = p.d, index = (n, max) => Number.isInteger(n) && n >= 0 && n < max;
     if (p.t === "tarot") return window.AstraTarotSpreads.validate(d).length === 0 && p.r.readings.length === tarotConfig(d).count;
     if (p.t === "gua") return Array.isArray(d.lines) && d.lines.length === 6 && d.lines.every(n => [6, 7, 8, 9].includes(n)) && index(d.guaIndex - 1, 64) && index(d.changeIdx, 64);
@@ -2803,17 +2760,19 @@
     if (p.t === "rune") return Array.isArray(d.runes) && d.runes.length === 3 && d.runes.every(n => index(n, RUNE.length));
     return index(d.sign, ORACLE.length);
   }
-  async function restoreFromShare() {
-    const m = location.hash.match(/^#s=([A-Za-z0-9\-_]+)$/);
-    if (!m) return;
-    let p = null;
-    try { p = await decodeShareCode(m[1]); } catch (e) { p = null; }
-    if (!validSharedReading(p)) { alert(t("shareBad")); return; }
+  function restoreFromShare() {
+    if (!location.hash.startsWith("#s=")) return;
+    let p;
+    try { p = decodeShareCode(location.hash.slice(3)); } catch (_) {}
+    if (!validSharedReading(p)) {
+      window.astraExperience.toast(t("shareBad"));
+      return;
+    }
     const sourceLanguage = [p.ol, p.r.outputLanguage, p.l, p.uiLocale].find(window.AstraReadingLanguages.supported) || window.AstraLocale.get();
     setLang(sourceLanguage, { regenerate: false });
     vortex.classList.add("hide");
     lastModule = p.t;
-    currentReading = { type: p.t, data: p.d || {}, r: p.r, isLive: p.live === true, language: lang, outputLanguage: sourceLanguage, shared: true };
+    currentReading = { type: p.t, data: { question: "", topic: "other", ...p.d }, r: p.r, isLive: p.live === true, language: lang, outputLanguage: sourceLanguage, shared: true };
     window.__reading = currentReading;
     readingTitle.textContent = t(readingTitleKey(p.t));
     switchScreen("reading");

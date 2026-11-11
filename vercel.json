@@ -16,5 +16,8 @@
       "source": "/api/:path*",
       "destination": "/api/index?astraPath=:path*"
     }
+  ],
+  "regions": [
+    "sin1"
   ]
 }

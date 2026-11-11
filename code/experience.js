@@ -103,7 +103,7 @@
       let resizeActionsFrame = 0;
       window.addEventListener("resize", () => { cancelAnimationFrame(resizeActionsFrame); resizeActionsFrame = requestAnimationFrame(() => this.resizeActionFields()); });
       const header = document.querySelector(".topbar");
-      const updateHeaderSpace = () => document.documentElement.style.setProperty("--app-topbar-height", Math.ceil(header.getBoundingClientRect().bottom) + "px");
+      const updateHeaderSpace = () => document.documentElement.style.setProperty("--app-topbar-height", Math.ceil(header.getBoundingClientRect().height) + "px");
       if (typeof ResizeObserver !== "undefined") new ResizeObserver(updateHeaderSpace).observe(header);
       else window.addEventListener("resize", updateHeaderSpace);
       updateHeaderSpace();

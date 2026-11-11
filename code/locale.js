@@ -25,7 +25,7 @@
  function translate(text,target=locale,depth=0){
   if(typeof text!=='string'||!text)return text;
   text=canonical(text);
-  if(target==='zh')return window.AstraLocaleChinese?.[text]||text;
+  if(target==='zh')return window.AstraLocaleChinese?.[text]||(text==='Save'?'保存':text==='Saved'?'已保存':'')||text;
   if(target==='en')return text;
   const dictionary=window.AstraLocaleData?.[target]||{},extra=extras[target]||{};
   if(extra[text]!=null)return extra[text];if(dictionary[text]!=null)return dictionary[text];

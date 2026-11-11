@@ -32,7 +32,6 @@
       this.scope = "all";
       this.voice = "";
       this.readingLanguage = "zh";
-      this.languageOverride = "";
       this.voiceCatalog = null;
       this.voiceReady = Promise.resolve();
       this.errorKind = "";
@@ -79,7 +78,6 @@
         this.update();
       });
       this.el.querySelector("[data-audio=voice]").addEventListener("change", e => this.changeVoice(e.target.value));
-      this.el.querySelector("[data-audio=language]").addEventListener("change", e => this.changeLanguage(e.target.value));
       this.el.querySelector("[data-audio=rate]").addEventListener("change", e => {
         this.rate = Number(e.target.value);
         if (this.audio) this.audio.playbackRate = this.rate;
@@ -120,7 +118,7 @@
       const label = this.el.querySelector("[data-audio=toggle-label]");
       if (label && this.toggleLabel) label.textContent = innerWidth <= 680 ? this.compactToggleLabel : this.toggleLabel;
     }
-    speechLanguage() { return this.languageOverride || this.readingLanguage; }
+    speechLanguage() { return this.readingLanguage; }
     chapterIndex() { return this.segments[this.index]?.chapter ?? 0; }
     playChapter(index) {
       const chapter = this.chapters[Math.max(0, Math.min(this.chapters.length - 1, index))];
@@ -131,30 +129,12 @@
     continuesTo(index) {
       return index < this.segments.length && (this.scope === "all" || this.segments[index].chapter === this.chapterIndex());
     }
-    captureState() {
-      return { index: this.index, offset: this.audio ? this.audio.currentTime : this.pendingSeek || 0, desired: this.desired, status: this.status, errorKind: this.errorKind, voice: this.voice, scope: this.scope, follow: this.follow, rate: this.rate, languageOverride: this.languageOverride };
-    }
-    async restoreState(saved) {
-      if (!saved || !this.segments.length) return;
-      const epoch = this.epoch;
-      this.languageOverride = saved.languageOverride;
-      await this.voiceReady;
-      if (epoch !== this.epoch) return;
-      this.index = Math.min(saved.index, this.segments.length - 1);
-      this.voice = saved.voice; this.scope = saved.scope; this.follow = saved.follow; this.rate = saved.rate;
-      this.pendingSeek = saved.offset;
-      this.el.querySelector("[data-audio=rate]").value = String(this.rate);
-      if (saved.desired) this.playAt(this.index);
-      else { this.status = saved.status; this.errorKind = saved.errorKind; this.update(); }
-    }
     setReading(body, options) {
       this.stop();
       this.apiAvailable = !options || options.apiAvailable !== false;
       const original = Array.from(body.querySelectorAll(".tone, .r-card .txt p, .synthesis p, .actions-list li, .closing")).map(n => n.textContent).join("\n");
       this.explicitSourceLanguage=options?.sourceLanguage||"";
       this.readingLanguage = this.explicitSourceLanguage || window.AstraSpeechLanguage.resolveSpeechLanguage(original, this.options.speechLang());
-      this.languageOverride = "";
-      this.languageNotice = "";
       this.scope = "all";
       this.voice = "";
       this.voiceReady = this.loadVoices();
@@ -178,7 +158,7 @@
         const chapterIndex = this.chapters.length - 1;
         // Bounded requests without ever truncating a paragraph or a complete reading.
         let text = node.textContent.trim();
-        const segmentLanguage = this.explicitSourceLanguage || window.AstraSpeechLanguage.resolveSpeechLanguage(text, this.readingLanguage);
+        const segmentLanguage = this.readingLanguage;
         if (parent && node === parent.querySelector(".txt p") && window.AstraSpeechLanguage.resolveSpeechLanguage(label, segmentLanguage) === segmentLanguage) text = label + (segmentLanguage === "zh" ? "。" : ". ") + text;
         const sentences = text.match(/[^。！？.!?]+[。！？.!?]*|[。！？.!?]+/gu) || [text];
         let chunk = "";
@@ -252,28 +232,6 @@
       this.voice = value;
       this.errorKind = "";
       try { localStorage.setItem("astra.voice." + this.speechLanguage(), value); } catch (_) {}
-      if (playing) this.playAt(this.index);
-      else { this.desired = false; this.status = "idle"; this.update(); }
-    }
-    changeLanguage(value) {
-      // A language override corrects detection; it is not a translation request.
-      // Do not send a Chinese reading as an unrelated language to the provider.
-      if (value && value !== this.readingLanguage && !this.segments.some(segment => segment.lang === value)) {
-        this.languageNotice = "original";
-        this.update();
-        return;
-      }
-      this.languageNotice = "";
-      if (value === this.languageOverride) { this.update(); return; }
-      const playing = this.desired;
-      this._silence(playing);
-      this.epoch++;
-      this.cache.forEach(entry => { entry.controller.abort(); if (entry.url) URL.revokeObjectURL(entry.url); });
-      this.cache.clear();
-      this.languageOverride = value;
-      this.voice = "";
-      this.errorKind = "";
-      this.voiceReady = this.loadVoices();
       if (playing) this.playAt(this.index);
       else { this.desired = false; this.status = "idle"; this.update(); }
     }
@@ -364,7 +322,7 @@
         if (epoch !== this.epoch || controller.signal.aborted) throw new Error("stale audio");
         const res = await fetch(this.options.endpoint(), {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: this.segments[index].text, lang: this.languageOverride || this.segments[index].lang, ...(this.voice ? { voice: this.voice } : {}) }), signal: controller.signal
+          body: JSON.stringify({ text: this.segments[index].text, lang: this.segments[index].lang, ...(this.voice ? { voice: this.voice } : {}) }), signal: controller.signal
         });
         if (!res.ok) {
           const error = new Error(`HTTP ${res.status}`); error.status = res.status;
@@ -503,7 +461,7 @@
         synthesis: this.tx("神谕暂未抵达，请点击重试", "Voice unavailable · tap to retry"),
         stalled: this.tx("播放未启动，请点击重试或换浏览器", "Playback stalled · retry or try another browser"),
         voice: this.tx("此音色暂不可用，请换一种音色", "This voice is unavailable · choose another"),
-        language: this.tx("此语种暂不可用，请选自动识别", "Language unavailable · choose Automatic"),
+        language: this.tx("此语种暂不可用，请稍后重试", "Language unavailable · try again later"),
         timeout: this.tx("声音准备超时，请点击重试", "Voice request timed out · retry"),
         network: this.tx("语音连接中断，请点击重试", "Voice connection interrupted · retry"),
         busy: this.tx("语音服务繁忙，请稍后重试", "Voice service busy · retry shortly"),
@@ -529,12 +487,6 @@
       this.el.querySelector("[data-audio=scope] option[value=single]").textContent = this.tx("仅当前章", "Current chapter only");
       this.el.querySelector("[data-audio-label=voice]").textContent = this.tx("神谕音色", "Voice");
       this.el.querySelector("[data-audio-label=scope]").textContent = this.tx("聆听范围", "Listen to");
-      this.el.querySelector("[data-audio-label=language]").textContent = this.tx("原文语种", "Text language");
-      const language = this.el.querySelector("[data-audio=language]");
-      const names = { zh: ["中文", "Chinese"], en: ["英语", "English"], ja: ["日语", "Japanese"], ko: ["韩语", "Korean"], fr: ["法语", "French"], es: ["西班牙语", "Spanish"] };
-      language.value = this.languageOverride;
-      Array.from(language.options).forEach(option => { option.textContent = option.value ? this.tx(...names[option.value]) + (["ja", "ko", "fr", "es"].includes(option.value) ? this.tx(" · 试用", " · preview") : "") : this.tx("自动识别 · ", "Automatic · ") + this.tx(...names[this.readingLanguage]); });
-      language.setAttribute("aria-label", this.tx("原文语种", "Text language"));
       [["prev", this.tx("上一章", "Previous chapter")], ["next", this.tx("下一章", "Next chapter")], ["more", this.tx("更多操作", "More actions")], ["settings", this.tx("音色与听读设置", "Voice and audio settings")]].forEach(([key, text]) => {
         const control = this.el.querySelector(`[data-audio=${key}]`);
         control.setAttribute("aria-label", text); control.title = text;
@@ -546,9 +498,7 @@
       const follow = this.el.querySelector("[data-audio=follow]");
       follow.textContent = this.follow ? this.tx("跟随文字：开", "Follow text: on") : this.tx("回到朗读处", "Follow reading");
       follow.setAttribute("aria-pressed", String(this.follow));
-      this.el.querySelector("[data-audio=source]").textContent = this.languageNotice === "original"
-        ? this.tx("已保留原文语言。请在上方选择解读语言，再用相同取象生成解读。", "The original language is kept. Choose Reading language above, then Generate with these symbols.")
-        : this.tx("按原文语种朗读，保留原文内容", "Reads the original language without translating");
+      this.el.querySelector("[data-audio=source]").textContent = this.tx("按解读语言朗读，保留原文内容", "Reads the original language without translating");
       this.updateTime();
       this.renderVoices();
     }

@@ -485,48 +485,34 @@
     refreshHomeNote();
     refreshReadingBanner();
     loadHeroQuote();
-    syncReadingLanguageControls();window.AstraLocale.localize();
-    // Changing interface language does not redraw symbols or charge for another report.
+    refreshGuaExperience();                       // 掷爻按钮/提示按新语言重绘，否则停在切换前的中文上
+    if (readingPlayer) readingPlayer.update();     // 听读 dock 的标签由 tx() 生成，也要跟着换
+    window.AstraLocale.localize();
     if (window.astraExperience) window.astraExperience.onLanguage();
 
   }
-  function setLang(l) {
-    if (!window.AstraReadingLanguages.supported(l)) return;
+  function setLang(l, { regenerate = true } = {}) {
+    if (!window.AstraReadingLanguages.supported(l) || l === window.AstraLocale.get()) return;
+    const reading = regenerate && (state.screen === "reading" || !readingLoading.hidden)
+      ? pendingReading || currentReading : null;
+    if (reading && window.astraExperience && !window.astraExperience.flushSavedEdits()) {
+      langToggle.value = window.AstraLocale.get();
+      return;
+    }
+    if (reading) {
+      if (readingAbort) readingAbort.abort();
+      stopAudio();
+      currentReading = null;
+      window.__reading = null;
+    }
     window.AstraLocale.set(l);
-    readingLanguageChoice="";
-    const audioState = state.screen === "reading" && readingPlayer ? readingPlayer.captureState() : null;
-    if (state.screen === "reading") { stopAudio(); resetSpeakBtn(); }
-    lang = l==="zh"?"zh":"en";
+    lang = l === "zh" ? "zh" : "en";
     try { localStorage.setItem("lang", lang); } catch (e) {}
     applyLang();
-    if (audioState && readingPlayer) readingPlayer.restoreState(audioState);
+    if (reading) showReading(reading.type, reading.data);
   }
   const langToggle = document.getElementById("langToggle");
   const bgmToggle = document.getElementById("bgmToggle");
-  let readingLanguageChoice="";
-  function languageOptions(selected=""){
-    return [new Option(window.AstraLocale.translate("Use interface language"),""),...Object.entries(window.AstraReadingLanguages.names).map(([id,name])=>new Option(name,id))].map(option=>{option.selected=option.value===selected;return option;});
-  }
-  function syncReadingLanguageControls(){
-    document.querySelectorAll('[data-reading-language]').forEach(select=>{select.replaceChildren(...languageOptions(readingLanguageChoice));});
-    document.querySelectorAll('[data-reading-language-label]').forEach(el=>el.textContent=window.AstraLocale.translate(lang==="zh"?"解读语言":"Reading language"));
-    const button=document.getElementById("regenerateLanguage");if(button){button.textContent=window.AstraLocale.translate(lang==="zh"?"保留取象，按此语言生成":"Generate with these symbols");button.disabled=!!(readingLoading&&!readingLoading.hidden);}
-  }
-  function showReadingLanguageStatus(message){const el=document.getElementById("readingLanguageStatus");if(el){el.textContent=window.AstraLocale.translate(message);el.hidden=false;}}
-  function installReadingLanguageControls(){
-    document.querySelectorAll('.screen[data-screen]').forEach(screen=>{
-      if(!["tarot","rune","gua","oracle","number","mansion","reading"].includes(screen.dataset.screen))return;
-      const box=document.createElement("div");box.className="reading-language-control";
-      const label=document.createElement("label"),text=document.createElement("span"),select=document.createElement("select");text.dataset.readingLanguageLabel="";select.dataset.readingLanguage="";select.setAttribute("aria-label","Reading language");label.append(text,select);box.append(label);
-      select.addEventListener("change",()=>{readingLanguageChoice=select.value;syncReadingLanguageControls();});
-      if(screen.dataset.screen==="reading"){
-        const button=document.createElement("button");button.type="button";button.className="ghost-btn";button.id="regenerateLanguage";
-        button.addEventListener("click",()=>{if(!currentReading||!readingLoading.hidden)return;if(!window.astraExperience.flushSavedEdits())return;const target=readingLanguageChoice||window.AstraLocale.get();showReading(currentReading.type,{...currentReading.data,_outputLanguage:target});});
-        box.append(button);const status=document.createElement("p");status.id="readingLanguageStatus";status.setAttribute("role","status");status.hidden=true;box.append(status);screen.querySelector('.panel-head').after(box);
-      }else (screen.querySelector('.ask-row')||screen.querySelector('.panel-head')).before(box);
-    });syncReadingLanguageControls();
-  }
-
 
   /* ---------------- 状态机 ---------------- */
   const state = { screen: "home" };
@@ -572,6 +558,7 @@
       if (readingAbort) readingAbort.abort();
       clearInterval(loadTimer); clearInterval(loreTimer);
       readingLoading.hidden = true;
+      pendingReading = null;
     }
     if (state.screen === "reading" && name !== "reading") { stopAudio(); resetSpeakBtn(); }
     const toReading = name === "reading";
@@ -2136,7 +2123,6 @@
   }
   function renderReading(r, isLive, opts) {
     if(window.AstraPinch)refreshGestureModeUI();
-    syncReadingLanguageControls();
     let html = "";
     if (r.question) {
       html += '<div class="ask-echo"><span class="ask-echo-tag">' + t("lblYouAsk") + (r.questionTopic || t("tOther")) + '</span>' +
@@ -2188,9 +2174,9 @@
   }
 
   function showReading(type, data) {
-    const previous=state.screen==="reading"?currentReading:null;
     const qa = readQuestion(type);
-    data = Object.assign({}, data || {}, { question: data && data.question != null ? data.question : qa.question, topic: data && data.topic || qa.topic, _outputLanguage:data?._outputLanguage||readingLanguageChoice||window.AstraLocale.get() });
+    data = Object.assign({}, data || {}, { question: data && data.question != null ? data.question : qa.question, topic: data && data.topic || qa.topic, _outputLanguage:window.AstraLocale.get() });
+    if (readingAbort) readingAbort.abort();
     stopAudio();
     document.getElementById("readingRecovery").hidden = true;
     readingTitle.textContent = t(
@@ -2208,8 +2194,10 @@
     if (readingTools) readingTools.hidden = true;
     if (revealSkip) revealSkip.hidden = true;
     if (window.speechSynthesis) window.speechSynthesis.cancel();
+    currentReading = null; window.__reading = null;
+    document.querySelectorAll('.screen[data-screen="reading"] > .reading-quick').forEach(node => node.remove());
     if (soundOn) ensureAudio();                 // 在点击手势内预热音频上下文
-    pendingReading = { type, data, previous };
+    pendingReading = { type, data };
     startReadingLoading(type, data);
     const wait = reduced ? 180 : 260;
     playRevealVeil();
@@ -2278,6 +2266,7 @@
       if (!j || !Array.isArray(j.readings) || !j.readings.length ||
           typeof j.tone !== "string" || typeof j.synthesis !== "string" ||
           !Array.isArray(j.actions)) throw new Error("bad payload");
+      if (j.outputLanguage && j.outputLanguage !== data._outputLanguage) throw new Error("wrong reading language");
       return j;
     } catch (e) {
       readingFailure = e.name === "AbortError" ? "timeout" : e.message;
@@ -2294,12 +2283,6 @@
     if (token !== loadToken) return;            // 期间已发起新的解读请求，丢弃旧结果
     const isLive = !!r;
     const wanted=data._outputLanguage||lang;
-    if(!r&&pendingReading?.previous&&wanted!==lang){
-      const previous=pendingReading.previous;pendingReading=null;
-      await finishReadingLoading(token);if(token!==loadToken)return;
-      window.astraExperience.bridge.restore(previous);
-      showReadingLanguageStatus("Generation failed. Your previous reading is preserved. Select a language and retry.");return;
-    }
     if(!r&&["ja","ko","fr","es"].includes(wanted)){
       await finishReadingLoading(token);if(token!==loadToken)return;
       currentReading=null;window.__reading=null;stopAudio();
@@ -2307,7 +2290,7 @@
       document.getElementById("readingBanner").hidden=true;
       document.getElementById("readingRecovery").hidden=false;
       document.getElementById("readingRecoveryText").textContent=window.AstraLocale.translate("The reading could not be generated. Your symbols are preserved. Please retry.");
-      showReadingLanguageStatus("");syncReadingLanguageControls();return;
+      return;
     }
     if (!r) r = mockReading(type, data);
     else if (r.question && !r.questionTopic) r.questionTopic = topicLabel((data && data.topic) || "other");
@@ -2324,7 +2307,6 @@
     vortex.classList.add("hide");
     renderStage(type, data);
     renderReading(r, isLive);
-    if(!isLive&&wanted!==lang)showReadingLanguageStatus("The requested language could not be generated. This is a sample in "+window.AstraReadingLanguages.names[lang]+".");
     playChime(); // Keep the finished report clear; visual rituals run during loading.
   }
   let readingBannerMode = "demo";
@@ -2827,10 +2809,11 @@
     let p = null;
     try { p = await decodeShareCode(m[1]); } catch (e) { p = null; }
     if (!validSharedReading(p)) { alert(t("shareBad")); return; }
-    if(p.uiLocale) setLang(p.uiLocale);else if(p.l&&p.l!==lang)setLang(p.l);
+    const sourceLanguage = [p.ol, p.r.outputLanguage, p.l, p.uiLocale].find(window.AstraReadingLanguages.supported) || window.AstraLocale.get();
+    setLang(sourceLanguage, { regenerate: false });
     vortex.classList.add("hide");
     lastModule = p.t;
-    currentReading = { type: p.t, data: p.d || {}, r: p.r, isLive: p.live === true, language: p.l || lang, outputLanguage:p.ol||p.r.outputLanguage||p.l||lang, shared: true };
+    currentReading = { type: p.t, data: p.d || {}, r: p.r, isLive: p.live === true, language: lang, outputLanguage: sourceLanguage, shared: true };
     window.__reading = currentReading;
     readingTitle.textContent = t(readingTitleKey(p.t));
     switchScreen("reading");
@@ -6137,17 +6120,21 @@
     open: mod => { seedQuestion(mod); switchScreen(mod); },
     retry: () => { const r = pendingReading || currentReading; if (r) showReading(r.type, r.data); },
     back: () => {
-      if (!currentReading) return;
-      if (currentReading.replayed || currentReading.shared) visitedModules.delete(currentReading.type);
-      switchScreen(currentReading.type);
+      const reading = currentReading || pendingReading;
+      if (!reading) return;
+      if (reading.replayed || reading.shared) visitedModules.delete(reading.type);
+      switchScreen(reading.type);
     },
     restore: saved => {
       loadToken++; if (readingAbort) readingAbort.abort(); clearInterval(loadTimer); clearInterval(loreTimer);
       readingLoading.hidden = true; document.getElementById("readingRecovery").hidden = true;
       vortex.classList.add("hide");
       lastModule = saved.type;
-      currentReading = JSON.parse(JSON.stringify(saved)); currentReading.replayed = true; window.__reading = currentReading;
-      if (["zh","en"].includes(window.AstraLocale.get())&&(saved.language === "zh" || saved.language === "en")) {lang=saved.language;window.AstraLocale.set(lang);}
+      const sourceLanguage = [saved.outputLanguage, saved.r.outputLanguage, saved.language].find(window.AstraReadingLanguages.supported) || window.AstraLocale.get();
+      pendingReading = null; currentReading = null;
+      setLang(sourceLanguage, { regenerate: false });
+      currentReading = { ...JSON.parse(JSON.stringify(saved)), language: lang, outputLanguage: sourceLanguage, replayed: true };
+      window.__reading = currentReading;
       // Refresh only the known incorrect built-in numeric sample; user notes and live/shared reports stay as saved.
       if (saved.type === "number" && !saved.isLive && !saved.shared && saved.r.readings.some(item => /约到第|resolving to energy No\./.test(item.text))) {
         currentReading.r = mockReading("number", Object.assign({}, saved.data, { question: saved.r.question || saved.data.question || "" }));
@@ -6163,7 +6150,7 @@
   document.querySelectorAll(".screen").forEach(s => { s.inert = !s.classList.contains("is-active"); });
 
   /* 应用初始语言（静态 + 顶栏 + 当前屏动态文案） */
-  installReadingLanguageControls();window.AstraLocale.start();
+  window.AstraLocale.start();
   themeUIReady = true;
   applyLang();
   checkHealth();                                 // 探测后端/密钥，决定首页状态文案

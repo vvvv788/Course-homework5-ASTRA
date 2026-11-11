@@ -260,3 +260,13 @@ html.theme-changing, html.theme-changing *, html.theme-changing *::before, html.
 
 body.has-audio-player .screen[data-screen=reading] { padding-bottom: var(--oracle-player-height, 210px); }
 
+
+/* On narrow screens, scroll the report below the fixed navigation rather than behind it. */
+@media (max-width: 980px) {
+  .screen[data-screen="reading"] {
+    top: var(--app-topbar-height, 84px);
+    padding-top: 20px;
+    scroll-padding-top: 20px;
+    overscroll-behavior-y: contain;
+  }
+}
